@@ -1,0 +1,31 @@
+# Superpowers brainstorming sessions
+.superpowers/
+
+# Dependencies
+node_modules/
+target/
+
+# Build outputs
+dist/
+build/
+*.exe
+*.AppImage
+*.deb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database (user data - should not be committed)
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
