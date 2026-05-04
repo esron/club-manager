@@ -1,6 +1,9 @@
 # Superpowers brainstorming sessions
 .superpowers/
 
+# Git worktrees
+.worktrees/
+
 # Dependencies
 node_modules/
 target/
