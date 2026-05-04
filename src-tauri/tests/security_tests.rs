@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
     use gestor_do_clube_lib::security::password::{hash_password, verify_password, derive_encryption_key};
+    use gestor_do_clube_lib::security::config::{AppConfig, save_config, load_config};
+    use tempfile::TempDir;
 
     #[test]
     fn test_password_hash_and_verify() {
@@ -53,5 +55,25 @@ mod tests {
         let key2 = derive_encryption_key(password, salt2).unwrap();
 
         assert_ne!(key1, key2);
+    }
+
+    #[test]
+    fn test_save_and_load_config() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.json");
+
+        let config = AppConfig {
+            password_hash: "test_hash".to_string(),
+            salt: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+            minimum_fee_brl: "15.00".to_string(),
+            created_at: chrono::Utc::now().to_rfc3339(),
+        };
+
+        save_config(&config, &config_path).expect("Failed to save config");
+        let loaded = load_config(&config_path).expect("Failed to load config");
+
+        assert_eq!(config.password_hash, loaded.password_hash);
+        assert_eq!(config.salt, loaded.salt);
+        assert_eq!(config.minimum_fee_brl, loaded.minimum_fee_brl);
     }
 }
