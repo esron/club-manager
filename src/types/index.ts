@@ -25,5 +25,5 @@ export const formatCurrency = (value: number): string => {
 
 export const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);
-  return new Intl.DateFormat('pt-BR').format(date);
+  return new Intl.DateTimeFormat('pt-BR').format(date);
 };
