@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dark-bg text-dark-text-primary;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  label, small, .text-secondary {
+    @apply text-dark-text-secondary;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-dark-accent;
+  }
+
+  input, select, textarea {
+    @apply bg-dark-surface border border-dark-border text-dark-text-primary;
+    @apply rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-dark-accent;
+  }
+
+  button {
+    @apply bg-dark-accent text-white px-4 py-2 rounded;
+    @apply hover:opacity-90 transition-opacity;
+  }
+}
