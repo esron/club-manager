@@ -4,6 +4,9 @@ use crate::security::password::derive_encryption_key;
 use crate::db::connection::open_encrypted_db;
 use std::path::PathBuf;
 
+const VALID_SETTING_KEYS: &[&str] = &["minimum_fee_brl"];
+const MAX_FEE_BRL: f64 = 9999.99;
+
 #[tauri::command]
 pub fn get_setting_cmd(password: String, key: String) -> Result<String, String> {
     let conn = get_authenticated_connection(&password)?;
@@ -13,35 +16,42 @@ pub fn get_setting_cmd(password: String, key: String) -> Result<String, String> 
 
 #[tauri::command]
 pub fn update_setting_cmd(password: String, key: String, value: String) -> Result<(), String> {
-    // Validate based on key
-    if key == "minimum_fee_brl" {
-        validate_minimum_fee(&value)?;
+    if !VALID_SETTING_KEYS.contains(&key.as_str()) {
+        return Err(format!("Configuração desconhecida: {}", key));
     }
 
+    // Validate based on key
+    let validated_value = if key == "minimum_fee_brl" {
+        validate_minimum_fee(&value)?
+    } else {
+        value
+    };
+
     let conn = get_authenticated_connection(&password)?;
-    update_setting(&conn, &key, &value)
+    update_setting(&conn, &key, &validated_value)
         .map_err(|e| format!("Failed to update setting: {}", e))
 }
 
-fn validate_minimum_fee(value: &str) -> Result<(), String> {
+fn validate_minimum_fee(value: &str) -> Result<String, String> {
     let amount: f64 = value.parse()
         .map_err(|_| "Valor inválido".to_string())?;
 
-    if amount <= 0.0 {
+    if !amount.is_finite() || amount <= 0.0 {
         return Err("Valor deve ser maior que zero".to_string());
     }
 
-    if amount > 9999.99 {
-        return Err("Valor máximo: R$ 9999.99".to_string());
+    if amount > MAX_FEE_BRL {
+        return Err(format!("Valor máximo: R$ {:.2}", MAX_FEE_BRL));
     }
 
-    // Check decimal places
+    // Check decimal places on original input
     let parts: Vec<&str> = value.split('.').collect();
     if parts.len() == 2 && parts[1].len() > 2 {
         return Err("Máximo 2 casas decimais".to_string());
     }
 
-    Ok(())
+    // Return normalized value
+    Ok(format!("{:.2}", amount))
 }
 
 fn get_authenticated_connection(password: &str) -> Result<rusqlite::Connection, String> {
