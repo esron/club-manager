@@ -3,10 +3,11 @@ import { useApp } from '../contexts/AppContext';
 import { formatCurrency, formatDate } from '../types';
 import { DateInput } from './DateInput';
 import { SettingsScreen } from './SettingsScreen';
+import { DashboardScreen } from './DashboardScreen';
 
 export const MainLayout = () => {
-  const { members, payments, settings, refreshMembers, refreshPayments, refreshSettings, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment } = useApp();
-  const [activeTab, setActiveTab] = useState<'members' | 'payments' | 'settings'>('members');
+  const { members, payments, settings, refreshMembers, refreshPayments, refreshSettings, getAllDebts, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment } = useApp();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'payments' | 'settings'>('dashboard');
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [memberName, setMemberName] = useState('');
@@ -137,6 +138,14 @@ export const MainLayout = () => {
         <h1 className="text-xl font-bold mb-8 text-dark-text-primary">Gestor do Clube</h1>
         <nav>
           <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`w-full text-left px-4 py-2 rounded mb-2 ${
+              activeTab === 'dashboard' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
+            }`}
+          >
+            Dashboard
+          </button>
+          <button
             onClick={() => setActiveTab('members')}
             className={`w-full text-left px-4 py-2 rounded mb-2 ${
               activeTab === 'members' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
@@ -163,9 +172,13 @@ export const MainLayout = () => {
         </nav>
       </div>
 
-      <div className="flex-1 p-8">
+      <div className="flex-1">
+        {activeTab === 'dashboard' && (
+          <DashboardScreen />
+        )}
+
         {activeTab === 'members' && (
-          <div>
+          <div className="p-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-dark-text-primary">Membros Ativos ({activeMembers.length})</h2>
               <button
@@ -408,7 +421,7 @@ export const MainLayout = () => {
         )}
 
         {activeTab === 'payments' && (
-          <div>
+          <div className="p-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-dark-text-primary">Pagamentos ({payments.length})</h2>
               <button
