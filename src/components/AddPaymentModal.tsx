@@ -61,6 +61,12 @@ export const AddPaymentModal = ({ isOpen, onClose, prefill }: AddPaymentModalPro
     setError('');
     setSubmitting(true);
 
+    if (selectedMemberId === 0) {
+      setError('Por favor, selecione um membro válido');
+      setSubmitting(false);
+      return;
+    }
+
     try {
       await addPayment(selectedMemberId, paymentMonth, paymentYear, parseFloat(paymentAmount), paymentDate);
       onClose();
@@ -86,8 +92,8 @@ export const AddPaymentModal = ({ isOpen, onClose, prefill }: AddPaymentModalPro
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
+      if (e.key === 'Escape' && !submitting) {
+        onClose();
       }
     };
 
@@ -98,7 +104,7 @@ export const AddPaymentModal = ({ isOpen, onClose, prefill }: AddPaymentModalPro
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, submitting]);
+  }, [isOpen, submitting, onClose]);
 
   if (!isOpen) return null;
 
@@ -171,7 +177,8 @@ export const AddPaymentModal = ({ isOpen, onClose, prefill }: AddPaymentModalPro
           <div className="mb-4">
             <label className="block mb-2 text-dark-text-secondary">Valor (R$)</label>
             <input
-              type="text"
+              type="number"
+              step="0.01"
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
               className="w-full bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2"
@@ -185,7 +192,8 @@ export const AddPaymentModal = ({ isOpen, onClose, prefill }: AddPaymentModalPro
             <DateInput
               value={paymentDate}
               onChange={setPaymentDate}
-              className="w-full"
+              className="w-full bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2"
+              required
             />
           </div>
 
