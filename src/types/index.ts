@@ -16,6 +16,10 @@ export interface Payment {
   created_at: string;
 }
 
+export interface AppSettings {
+  minimumFee: string;
+}
+
 export const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
