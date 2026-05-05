@@ -1,8 +1,8 @@
 // src/components/MemberDetailView.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { formatCurrency, formatDate, MONTH_NAMES_PT } from '../types';
-import type { Member, Payment, MemberDebtInfo } from '../types';
+import type { MemberDebtInfo } from '../types';
 
 interface MemberDetailViewProps {
   memberId: number;
@@ -21,14 +21,7 @@ export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) =>
 
   const member = members.find(m => m.id === memberId);
 
-  useEffect(() => {
-    if (member) {
-      setNewName(member.name);
-      loadDebt();
-    }
-  }, [memberId, member]);
-
-  const loadDebt = async () => {
+  const loadDebt = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -40,30 +33,52 @@ export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) =>
     } finally {
       setLoading(false);
     }
-  };
+  }, [memberId, getMemberDebt]);
+
+  useEffect(() => {
+    if (member) {
+      setNewName(member.name);
+      loadDebt();
+    }
+  }, [memberId, member, loadDebt]);
 
   const handleSaveName = async () => {
+    if (!newName.trim()) {
+      setError('Nome não pode estar vazio');
+      return;
+    }
     try {
       await updateMemberName(memberId, newName);
       setEditingName(false);
+      setError('');
       await loadDebt();
     } catch (err) {
       console.error('Error updating name:', err);
-      alert(String(err));
+      setError(String(err));
     }
   };
 
   const handleDeactivate = async () => {
     if (confirm('Tem certeza que deseja desativar este membro?')) {
-      await updateMemberActive(memberId, false);
-      onBack();
+      try {
+        await updateMemberActive(memberId, false);
+        onBack();
+      } catch (err) {
+        console.error('Error deactivating member:', err);
+        setError(String(err));
+      }
     }
   };
 
   const handleDeletePayment = async (paymentId: number) => {
     if (confirm('Tem certeza que deseja excluir este pagamento?')) {
-      await deletePayment(paymentId);
-      await loadDebt();
+      try {
+        await deletePayment(paymentId);
+        await loadDebt();
+      } catch (err) {
+        console.error('Error deleting payment:', err);
+        setError(String(err));
+      }
     }
   };
 
@@ -158,7 +173,6 @@ export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) =>
                   <tr className="border-b border-dark-border">
                     <th className="text-left py-2 text-dark-text-secondary">Mês/Ano</th>
                     <th className="text-left py-2 text-dark-text-secondary">Valor</th>
-                    <th className="text-left py-2 text-dark-text-secondary">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -166,11 +180,6 @@ export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) =>
                     <tr key={idx} className="border-b border-dark-border">
                       <td className="py-2 text-dark-text-primary">{um.display}</td>
                       <td className="py-2 text-dark-text-primary">{formatCurrency(um.amount)}</td>
-                      <td className="py-2">
-                        <button className="text-dark-accent text-sm hover:underline">
-                          + Adicionar Pagamento
-                        </button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
