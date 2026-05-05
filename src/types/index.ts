@@ -52,5 +52,8 @@ export const MONTH_NAMES_PT = [
 ];
 
 export const formatMonthYear = (month: number, year: number): string => {
+  if (month < 1 || month > 12) {
+    throw new Error(`Invalid month: ${month}. Expected 1-12.`);
+  }
   return `${MONTH_NAMES_PT[month - 1]} ${year}`;
 };
