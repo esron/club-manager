@@ -58,7 +58,12 @@ export const MainLayout = () => {
         </nav>
       </div>
 
-      <div className="flex-1 p-8">
+      <div className="flex-1 p-8" onClick={(e) => {
+        // Close date pickers when clicking outside
+        if ((e.target as HTMLElement).tagName !== 'INPUT') {
+          (document.activeElement as HTMLElement)?.blur();
+        }
+      }}>
         {activeTab === 'members' && (
           <div>
             <div className="flex justify-between items-center mb-6">
