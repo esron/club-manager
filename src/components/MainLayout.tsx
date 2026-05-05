@@ -4,6 +4,7 @@ import { formatCurrency, formatDate } from '../types';
 import { DateInput } from './DateInput';
 import { SettingsScreen } from './SettingsScreen';
 import { DashboardScreen } from './DashboardScreen';
+import { MemberDetailView } from './MemberDetailView';
 
 export const MainLayout = () => {
   const { members, payments, settings, refreshMembers, refreshPayments, refreshSettings, getAllDebts, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment } = useApp();
@@ -22,6 +23,8 @@ export const MainLayout = () => {
   const [memberError, setMemberError] = useState('');
   const [editingMemberId, setEditingMemberId] = useState<number | null>(null);
   const [editingMemberName, setEditingMemberName] = useState('');
+  const [memberDetailId, setMemberDetailId] = useState<number | null>(null);
+  const [viewingMemberDetail, setViewingMemberDetail] = useState(false);
   const [membersPage, setMembersPage] = useState(1);
   const [membersPageSize, setMembersPageSize] = useState(15);
   const [inactiveMembersPage, setInactiveMembersPage] = useState(1);
@@ -177,7 +180,7 @@ export const MainLayout = () => {
           <DashboardScreen />
         )}
 
-        {activeTab === 'members' && (
+        {activeTab === 'members' && !viewingMemberDetail && (
           <div className="p-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-dark-text-primary">Membros Ativos ({activeMembers.length})</h2>
@@ -277,7 +280,15 @@ export const MainLayout = () => {
                             </button>
                           </div>
                         ) : (
-                          member.name
+                          <button
+                            onClick={() => {
+                              setMemberDetailId(member.id);
+                              setViewingMemberDetail(true);
+                            }}
+                            className="text-dark-accent hover:underline text-left"
+                          >
+                            {member.name}
+                          </button>
                         )}
                       </td>
                       <td className="p-4 text-dark-text-secondary">{formatDate(member.start_date)}</td>
@@ -418,6 +429,18 @@ export const MainLayout = () => {
               </>
             )}
           </div>
+        )}
+
+        {activeTab === 'members' && viewingMemberDetail && memberDetailId && (
+          <MemberDetailView
+            memberId={memberDetailId}
+            onBack={() => {
+              setViewingMemberDetail(false);
+              setMemberDetailId(null);
+              refreshMembers();
+              refreshPayments();
+            }}
+          />
         )}
 
         {activeTab === 'payments' && (
