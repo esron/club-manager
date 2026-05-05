@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Member, Payment, AppSettings } from '../types';
+import { Member, Payment, AppSettings, MemberDebtInfo } from '../types';
 import { useAuth } from './AuthContext';
 
 interface AppContextType {
@@ -11,6 +11,8 @@ interface AppContextType {
   refreshPayments: () => Promise<void>;
   refreshSettings: () => Promise<void>;
   updateSetting: (key: string, value: string) => Promise<void>;
+  getMemberDebt: (memberId: number) => Promise<MemberDebtInfo>;
+  getAllDebts: () => Promise<MemberDebtInfo[]>;
   addMember: (name: string, startDate: string) => Promise<void>;
   addPayment: (memberId: number, month: number, year: number, amount: number, paymentDate: string) => Promise<void>;
   updateMemberActive: (id: number, active: boolean) => Promise<void>;
@@ -61,6 +63,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     await refreshSettings();
   };
 
+  const getMemberDebt = async (memberId: number): Promise<MemberDebtInfo> => {
+    if (!password) throw new Error('Not authenticated');
+    const data = await invoke<MemberDebtInfo>('get_member_debt_cmd', { password, memberId });
+    return data;
+  };
+
+  const getAllDebts = async (): Promise<MemberDebtInfo[]> => {
+    if (!password) throw new Error('Not authenticated');
+    const data = await invoke<MemberDebtInfo[]>('get_all_debts_cmd', { password });
+    return data;
+  };
+
   const addMember = async (name: string, startDate: string) => {
     if (!password) throw new Error('Not authenticated');
     await invoke('add_member_cmd', { password, name, startDate });
@@ -92,7 +106,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AppContext.Provider value={{ members, payments, settings, refreshMembers, refreshPayments, refreshSettings, updateSetting, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment }}>
+    <AppContext.Provider value={{ members, payments, settings, refreshMembers, refreshPayments, refreshSettings, updateSetting, getMemberDebt, getAllDebts, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment }}>
       {children}
     </AppContext.Provider>
   );
