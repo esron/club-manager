@@ -32,6 +32,8 @@ pub fn run() {
             commands::payment::delete_payment_cmd,
             commands::database::check_database_initialized,
             commands::database::initialize_database,
+            commands::settings::get_setting_cmd,
+            commands::settings::update_setting_cmd,
             commands::seed::seed_database,
         ]);
     }
@@ -54,6 +56,8 @@ pub fn run() {
             commands::payment::delete_payment_cmd,
             commands::database::check_database_initialized,
             commands::database::initialize_database,
+            commands::settings::get_setting_cmd,
+            commands::settings::update_setting_cmd,
         ]);
     }
 
