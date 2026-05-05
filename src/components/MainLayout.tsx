@@ -2,10 +2,11 @@ import { useEffect, useState, useRef } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { formatCurrency, formatDate } from '../types';
 import { DateInput } from './DateInput';
+import { SettingsScreen } from './SettingsScreen';
 
 export const MainLayout = () => {
-  const { members, payments, refreshMembers, refreshPayments, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment } = useApp();
-  const [activeTab, setActiveTab] = useState<'members' | 'payments'>('members');
+  const { members, payments, settings, refreshMembers, refreshPayments, refreshSettings, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment } = useApp();
+  const [activeTab, setActiveTab] = useState<'members' | 'payments' | 'settings'>('members');
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [memberName, setMemberName] = useState('');
@@ -30,6 +31,7 @@ export const MainLayout = () => {
   useEffect(() => {
     refreshMembers();
     refreshPayments();
+    refreshSettings();
   }, []);
 
   const activeMembers = members.filter((m) => {
@@ -144,11 +146,19 @@ export const MainLayout = () => {
           </button>
           <button
             onClick={() => setActiveTab('payments')}
-            className={`w-full text-left px-4 py-2 rounded ${
+            className={`w-full text-left px-4 py-2 rounded mb-2 ${
               activeTab === 'payments' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
             }`}
           >
             Pagamentos
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`w-full text-left px-4 py-2 rounded ${
+              activeTab === 'settings' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
+            }`}
+          >
+            Configurações
           </button>
         </nav>
       </div>
@@ -572,6 +582,10 @@ export const MainLayout = () => {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <SettingsScreen />
         )}
       </div>
     </div>
