@@ -1,13 +1,16 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Member, Payment } from '../types';
+import { Member, Payment, AppSettings } from '../types';
 import { useAuth } from './AuthContext';
 
 interface AppContextType {
   members: Member[];
   payments: Payment[];
+  settings: AppSettings;
   refreshMembers: () => Promise<void>;
   refreshPayments: () => Promise<void>;
+  refreshSettings: () => Promise<void>;
+  updateSetting: (key: string, value: string) => Promise<void>;
   addMember: (name: string, startDate: string) => Promise<void>;
   addPayment: (memberId: number, month: number, year: number, amount: number, paymentDate: string) => Promise<void>;
   updateMemberActive: (id: number, active: boolean) => Promise<void>;
@@ -21,6 +24,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const { password } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [settings, setSettings] = useState<AppSettings>({ minimumFee: '15.00' });
 
   const refreshMembers = async () => {
     if (!password) return;
@@ -36,6 +40,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (!password) return;
     const data = await invoke<Payment[]>('get_payments_cmd', { password });
     setPayments(data);
+  };
+
+  const refreshSettings = async () => {
+    if (!password) return;
+    try {
+      const minimumFee = await invoke<string>('get_setting_cmd', {
+        password,
+        key: 'minimum_fee_brl'
+      });
+      setSettings({ minimumFee });
+    } catch (err) {
+      console.error('Error refreshing settings:', err);
+    }
+  };
+
+  const updateSetting = async (key: string, value: string) => {
+    if (!password) throw new Error('Not authenticated');
+    await invoke('update_setting_cmd', { password, key, value });
+    await refreshSettings();
   };
 
   const addMember = async (name: string, startDate: string) => {
@@ -69,7 +92,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AppContext.Provider value={{ members, payments, refreshMembers, refreshPayments, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment }}>
+    <AppContext.Provider value={{ members, payments, settings, refreshMembers, refreshPayments, refreshSettings, updateSetting, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment }}>
       {children}
     </AppContext.Provider>
   );
