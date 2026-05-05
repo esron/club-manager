@@ -13,7 +13,7 @@ export const MainLayout = () => {
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [memberName, setMemberName] = useState('');
   const [memberStartDate, setMemberStartDate] = useState('');
-  const [selectedMemberId, setSelectedMemberId] = useState<number>(0);
+  const [paymentMemberId, setPaymentMemberId] = useState<number>(0);
   const [selectedMemberName, setSelectedMemberName] = useState('');
   const [paymentMonth, setPaymentMonth] = useState(new Date().getMonth() + 1);
   const [paymentYear, setPaymentYear] = useState(new Date().getFullYear());
@@ -23,7 +23,7 @@ export const MainLayout = () => {
   const [memberError, setMemberError] = useState('');
   const [editingMemberId, setEditingMemberId] = useState<number | null>(null);
   const [editingMemberName, setEditingMemberName] = useState('');
-  const [memberDetailId, setMemberDetailId] = useState<number | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
   const [viewingMemberDetail, setViewingMemberDetail] = useState(false);
   const [membersPage, setMembersPage] = useState(1);
   const [membersPageSize, setMembersPageSize] = useState(15);
@@ -82,9 +82,9 @@ export const MainLayout = () => {
     e.preventDefault();
     setPaymentError('');
     try {
-      await addPayment(selectedMemberId, paymentMonth, paymentYear, parseFloat(paymentAmount), paymentDate);
+      await addPayment(paymentMemberId, paymentMonth, paymentYear, parseFloat(paymentAmount), paymentDate);
       setSelectedMemberName('');
-      setSelectedMemberId(0);
+      setPaymentMemberId(0);
       setShowAddPayment(false);
     } catch (err) {
       console.error('Error adding payment:', err);
@@ -95,7 +95,7 @@ export const MainLayout = () => {
   const handleMemberInputChange = (value: string) => {
     setSelectedMemberName(value);
     const member = activeMembers.find((m) => m.name === value);
-    setSelectedMemberId(member?.id || 0);
+    setPaymentMemberId(member?.id || 0);
   };
 
   const handleDeactivateMember = async (id: number) => {
@@ -282,7 +282,7 @@ export const MainLayout = () => {
                         ) : (
                           <button
                             onClick={() => {
-                              setMemberDetailId(member.id);
+                              setSelectedMemberId(member.id);
                               setViewingMemberDetail(true);
                             }}
                             className="text-dark-accent hover:underline text-left"
@@ -431,12 +431,12 @@ export const MainLayout = () => {
           </div>
         )}
 
-        {activeTab === 'members' && viewingMemberDetail && memberDetailId && (
+        {activeTab === 'members' && viewingMemberDetail && selectedMemberId && (
           <MemberDetailView
-            memberId={memberDetailId}
+            memberId={selectedMemberId}
             onBack={() => {
               setViewingMemberDetail(false);
-              setMemberDetailId(null);
+              setSelectedMemberId(null);
               refreshMembers();
               refreshPayments();
             }}
@@ -452,7 +452,7 @@ export const MainLayout = () => {
                   setShowAddPayment(!showAddPayment);
                   if (!showAddPayment) {
                     setSelectedMemberName('');
-                    setSelectedMemberId(0);
+                    setPaymentMemberId(0);
                     setPaymentError('');
                   }
                 }}
