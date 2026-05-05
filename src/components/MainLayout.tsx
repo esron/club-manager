@@ -141,7 +141,11 @@ export const MainLayout = () => {
         <h1 className="text-xl font-bold mb-8 text-dark-text-primary">Gestor do Clube</h1>
         <nav>
           <button
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => {
+              setActiveTab('dashboard');
+              setSelectedMemberId(null);
+              setViewingMemberDetail(false);
+            }}
             className={`w-full text-left px-4 py-2 rounded mb-2 ${
               activeTab === 'dashboard' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
             }`}
@@ -149,7 +153,11 @@ export const MainLayout = () => {
             Dashboard
           </button>
           <button
-            onClick={() => setActiveTab('members')}
+            onClick={() => {
+              setActiveTab('members');
+              setSelectedMemberId(null);
+              setViewingMemberDetail(false);
+            }}
             className={`w-full text-left px-4 py-2 rounded mb-2 ${
               activeTab === 'members' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
             }`}
@@ -157,7 +165,11 @@ export const MainLayout = () => {
             Membros
           </button>
           <button
-            onClick={() => setActiveTab('payments')}
+            onClick={() => {
+              setActiveTab('payments');
+              setSelectedMemberId(null);
+              setViewingMemberDetail(false);
+            }}
             className={`w-full text-left px-4 py-2 rounded mb-2 ${
               activeTab === 'payments' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
             }`}
@@ -165,7 +177,11 @@ export const MainLayout = () => {
             Pagamentos
           </button>
           <button
-            onClick={() => setActiveTab('settings')}
+            onClick={() => {
+              setActiveTab('settings');
+              setSelectedMemberId(null);
+              setViewingMemberDetail(false);
+            }}
             className={`w-full text-left px-4 py-2 rounded ${
               activeTab === 'settings' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
             }`}
