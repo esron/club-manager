@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { formatCurrency, formatDate, MONTH_NAMES_PT } from '../types';
-import type { MemberDebtInfo } from '../types';
+import type { Member, Payment, MemberDebtInfo } from '../types';
 
 interface MemberDetailViewProps {
   memberId: number;
