@@ -10,7 +10,7 @@ interface MemberDetailViewProps {
 }
 
 export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) => {
-  const { members, payments, getMemberDebt, updateMemberActive, updateMemberName, deletePayment } = useApp();
+  const { members, payments, getMemberDebt, openPaymentModal, updateMemberActive, updateMemberName, deletePayment } = useApp();
   const [debtInfo, setDebtInfo] = useState<MemberDebtInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -173,6 +173,7 @@ export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) =>
                   <tr className="border-b border-dark-border">
                     <th className="text-left py-2 text-dark-text-secondary">Mês/Ano</th>
                     <th className="text-left py-2 text-dark-text-secondary">Valor</th>
+                    <th className="text-left py-2 text-dark-text-secondary">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -180,6 +181,19 @@ export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) =>
                     <tr key={idx} className="border-b border-dark-border">
                       <td className="py-2 text-dark-text-primary">{um.display}</td>
                       <td className="py-2 text-dark-text-primary">{formatCurrency(um.amount)}</td>
+                      <td className="py-2">
+                        <button
+                          onClick={() => openPaymentModal({
+                            memberId: member.id,
+                            memberName: member.name,
+                            month: um.month,
+                            year: um.year,
+                          })}
+                          className="text-dark-accent text-sm hover:underline"
+                        >
+                          + Adicionar Pagamento
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
