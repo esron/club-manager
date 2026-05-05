@@ -46,6 +46,13 @@ export interface MemberDebtInfo {
   unpaid_months: UnpaidMonth[];
 }
 
+export interface PaymentPrefill {
+  memberId?: number;
+  memberName?: string;
+  month?: number;
+  year?: number;
+}
+
 export const MONTH_NAMES_PT = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'

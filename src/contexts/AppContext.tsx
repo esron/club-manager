@@ -1,18 +1,22 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Member, Payment, AppSettings, MemberDebtInfo } from '../types';
+import { Member, Payment, AppSettings, MemberDebtInfo, PaymentPrefill } from '../types';
 import { useAuth } from './AuthContext';
 
 interface AppContextType {
   members: Member[];
   payments: Payment[];
   settings: AppSettings;
+  paymentModalOpen: boolean;
+  paymentModalPrefill?: PaymentPrefill;
   refreshMembers: () => Promise<void>;
   refreshPayments: () => Promise<void>;
   refreshSettings: () => Promise<void>;
   updateSetting: (key: string, value: string) => Promise<void>;
   getMemberDebt: (memberId: number) => Promise<MemberDebtInfo>;
   getAllDebts: () => Promise<MemberDebtInfo[]>;
+  openPaymentModal: (prefill?: PaymentPrefill) => void;
+  closePaymentModal: () => void;
   addMember: (name: string, startDate: string) => Promise<void>;
   addPayment: (memberId: number, month: number, year: number, amount: number, paymentDate: string) => Promise<void>;
   updateMemberActive: (id: number, active: boolean) => Promise<void>;
@@ -27,6 +31,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [members, setMembers] = useState<Member[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [settings, setSettings] = useState<AppSettings>({ minimumFee: '15.00' });
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentModalPrefill, setPaymentModalPrefill] = useState<PaymentPrefill>();
 
   const refreshMembers = async () => {
     if (!password) return;
@@ -105,8 +111,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     await refreshPayments();
   };
 
+  const openPaymentModal = (prefill?: PaymentPrefill) => {
+    setPaymentModalPrefill(prefill);
+    setPaymentModalOpen(true);
+  };
+
+  const closePaymentModal = () => {
+    setPaymentModalOpen(false);
+    setPaymentModalPrefill(undefined);
+  };
+
   return (
-    <AppContext.Provider value={{ members, payments, settings, refreshMembers, refreshPayments, refreshSettings, updateSetting, getMemberDebt, getAllDebts, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment }}>
+    <AppContext.Provider value={{ members, payments, settings, paymentModalOpen, paymentModalPrefill, refreshMembers, refreshPayments, refreshSettings, updateSetting, getMemberDebt, getAllDebts, openPaymentModal, closePaymentModal, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment }}>
       {children}
     </AppContext.Provider>
   );
