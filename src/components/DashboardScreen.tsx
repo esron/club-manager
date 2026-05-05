@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { formatCurrency } from '../types';
 import type { MemberDebtInfo } from '../types';
@@ -9,7 +9,7 @@ export const DashboardScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const loadDebts = async () => {
+  const loadDebts = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -17,15 +17,15 @@ export const DashboardScreen = () => {
       setDebts(data);
     } catch (err) {
       console.error('Error loading debts:', err);
-      setError('Erro ao calcular dívidas');
+      setError(String(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAllDebts]);
 
   useEffect(() => {
     loadDebts();
-  }, []);
+  }, [loadDebts]);
 
   const totalDebt = debts.reduce((sum, d) => sum + d.total_debt, 0);
   const activeMembers = members.filter(m => m.active).length;
