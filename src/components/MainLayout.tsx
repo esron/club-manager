@@ -5,9 +5,10 @@ import { DateInput } from './DateInput';
 import { SettingsScreen } from './SettingsScreen';
 import { DashboardScreen } from './DashboardScreen';
 import { MemberDetailView } from './MemberDetailView';
+import { AddPaymentModal } from './AddPaymentModal';
 
 export const MainLayout = () => {
-  const { members, payments, settings, refreshMembers, refreshPayments, refreshSettings, getAllDebts, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment } = useApp();
+  const { members, payments, settings, refreshMembers, refreshPayments, refreshSettings, getAllDebts, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment, paymentModalOpen, paymentModalPrefill, openPaymentModal, closePaymentModal } = useApp();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'payments' | 'settings'>('dashboard');
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddPayment, setShowAddPayment] = useState(false);
@@ -191,10 +192,22 @@ export const MainLayout = () => {
         </nav>
       </div>
 
-      <div className="flex-1">
-        {activeTab === 'dashboard' && (
-          <DashboardScreen />
-        )}
+      <div className="flex-1 flex flex-col">
+        <div className="flex items-center gap-4 p-4 border-b border-dark-border">
+          <div className="ml-auto">
+            <button
+              onClick={() => openPaymentModal()}
+              className="bg-dark-accent text-white px-4 py-2 rounded hover:opacity-90"
+            >
+              + Adicionar Pagamento
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto">
+          {activeTab === 'dashboard' && (
+            <DashboardScreen />
+          )}
 
         {activeTab === 'members' && !viewingMemberDetail && (
           <div className="p-8">
@@ -636,10 +649,17 @@ export const MainLayout = () => {
           </div>
         )}
 
-        {activeTab === 'settings' && (
-          <SettingsScreen />
-        )}
+          {activeTab === 'settings' && (
+            <SettingsScreen />
+          )}
+        </div>
       </div>
+
+      <AddPaymentModal
+        isOpen={paymentModalOpen}
+        onClose={closePaymentModal}
+        prefill={paymentModalPrefill}
+      />
     </div>
   );
 };
