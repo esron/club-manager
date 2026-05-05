@@ -17,22 +17,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [password, setPassword] = useState<string | null>(null);
 
   const checkFirstLaunch = async (): Promise<boolean> => {
-    return await invoke('check_first_launch');
+    try {
+      const result = await invoke<boolean>('check_first_launch');
+      console.log('First launch check:', result);
+      return result;
+    } catch (err) {
+      console.error('Error checking first launch:', err);
+      throw err;
+    }
   };
 
   const setupPassword = async (pwd: string): Promise<void> => {
-    await invoke('setup_password', { password: pwd });
-    setPassword(pwd);
-    setIsAuthenticated(true);
+    try {
+      console.log('Setting up password...');
+      await invoke('setup_password', { password: pwd });
+      console.log('Password setup successful');
+      setPassword(pwd);
+      setIsAuthenticated(true);
+    } catch (err) {
+      console.error('Error in setupPassword:', err);
+      throw err;
+    }
   };
 
   const login = async (pwd: string): Promise<boolean> => {
-    const isValid = await invoke<boolean>('verify_password_cmd', { password: pwd });
-    if (isValid) {
-      setPassword(pwd);
-      setIsAuthenticated(true);
+    try {
+      console.log('Attempting login...');
+      const isValid = await invoke<boolean>('verify_password_cmd', { password: pwd });
+      console.log('Login result:', isValid);
+      if (isValid) {
+        setPassword(pwd);
+        setIsAuthenticated(true);
+      }
+      return isValid;
+    } catch (err) {
+      console.error('Error in login:', err);
+      throw err;
     }
-    return isValid;
   };
 
   const logout = () => {

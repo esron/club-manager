@@ -10,8 +10,15 @@ export const LoginScreen = () => {
     e.preventDefault();
     setError('');
 
-    const success = await login(password);
-    if (!success) {
+    try {
+      const success = await login(password);
+      if (!success) {
+        console.log('Login failed: incorrect password');
+        setError('Senha incorreta');
+        setPassword('');
+      }
+    } catch (err) {
+      console.error('Error during login:', err);
       setError('Senha incorreta');
       setPassword('');
     }

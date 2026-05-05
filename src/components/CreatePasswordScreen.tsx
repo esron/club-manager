@@ -24,6 +24,7 @@ export const CreatePasswordScreen = () => {
     try {
       await setupPassword(password);
     } catch (err) {
+      console.error('Error creating password:', err);
       setError('Erro ao criar senha');
     }
   };
