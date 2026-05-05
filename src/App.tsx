@@ -4,10 +4,12 @@ import { AppProvider } from './contexts/AppContext';
 import { CreatePasswordScreen } from './components/CreatePasswordScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { MainLayout } from './components/MainLayout';
+import { DatabaseMissingModal } from './components/DatabaseMissingModal';
+import { DevTools } from './components/DevTools';
 import './App.css';
 
 function AppContent() {
-  const { isAuthenticated, checkFirstLaunch } = useAuth();
+  const { isAuthenticated, databaseMissing, checkFirstLaunch } = useAuth();
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -25,8 +27,13 @@ function AppContent() {
   if (!isAuthenticated) {
     return <LoginScreen />;
   }
-
-  return <MainLayout />;
+  return (
+    <>
+      <MainLayout />
+      {databaseMissing && <DatabaseMissingModal />}
+      <DevTools />
+    </>
+  );
 }
 
 function App() {

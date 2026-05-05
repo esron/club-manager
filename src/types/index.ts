@@ -24,6 +24,6 @@ export const formatCurrency = (value: number): string => {
 };
 
 export const formatDate = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  return new Intl.DateTimeFormat('pt-BR').format(date);
+  const [year, month, day] = dateStr.split('T')[0].split('-');
+  return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
 };

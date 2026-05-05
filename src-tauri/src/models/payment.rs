@@ -84,6 +84,12 @@ pub fn get_payment_by_member_month(
     )
 }
 
+/// Delete a payment
+pub fn delete_payment(conn: &Connection, id: i64) -> Result<()> {
+    conn.execute("DELETE FROM payments WHERE id = ?", [id])?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

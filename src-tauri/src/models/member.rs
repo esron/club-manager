@@ -47,6 +47,18 @@ pub fn get_members(conn: &Connection) -> Result<Vec<Member>> {
     Ok(members)
 }
 
+/// Get all members (active and inactive)
+pub fn get_all_members(conn: &Connection) -> Result<Vec<Member>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, start_date, created_at, active FROM members ORDER BY active DESC, name"
+    )?;
+
+    let members = stmt.query_map([], Member::from_row)?
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(members)
+}
+
 /// Get member by ID
 pub fn get_member_by_id(conn: &Connection, id: i64) -> Result<Member> {
     conn.query_row(
@@ -54,6 +66,34 @@ pub fn get_member_by_id(conn: &Connection, id: i64) -> Result<Member> {
         [id],
         Member::from_row,
     )
+}
+
+/// Get member by name
+pub fn get_member_by_name(conn: &Connection, name: &str) -> Result<Member> {
+    conn.query_row(
+        "SELECT id, name, start_date, created_at, active FROM members WHERE name = ? AND active = 1",
+        [name],
+        Member::from_row,
+    )
+}
+
+/// Update member active status
+pub fn update_member_active(conn: &Connection, id: i64, active: bool) -> Result<()> {
+    let active_val = if active { 1 } else { 0 };
+    conn.execute(
+        "UPDATE members SET active = ? WHERE id = ?",
+        [active_val, id],
+    )?;
+    Ok(())
+}
+
+/// Update member name
+pub fn update_member_name(conn: &Connection, id: i64, name: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE members SET name = ? WHERE id = ?",
+        [name, &id.to_string()],
+    )?;
+    Ok(())
 }
 
 #[cfg(test)]

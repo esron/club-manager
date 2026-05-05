@@ -1,4 +1,4 @@
-use crate::models::payment::{Payment, create_payment, get_payments};
+use crate::models::payment::{Payment, create_payment, get_payments, get_payment_by_member_month, delete_payment};
 use crate::security::config::load_config;
 use crate::security::password::derive_encryption_key;
 use crate::db::connection::open_encrypted_db;
@@ -14,6 +14,12 @@ pub fn add_payment_cmd(
     payment_date: String,
 ) -> Result<i64, String> {
     let conn = get_authenticated_connection(&password)?;
+
+    // Check if payment already exists for this member/month/year
+    if get_payment_by_member_month(&conn, member_id, month, year).is_ok() {
+        return Err("Pagamento já existe para este membro neste mês".to_string());
+    }
+
     create_payment(&conn, member_id, month, year, amount_brl, &payment_date)
         .map_err(|e| format!("Failed to create payment: {}", e))
 }
@@ -23,6 +29,13 @@ pub fn get_payments_cmd(password: String) -> Result<Vec<Payment>, String> {
     let conn = get_authenticated_connection(&password)?;
     get_payments(&conn)
         .map_err(|e| format!("Failed to get payments: {}", e))
+}
+
+#[tauri::command]
+pub fn delete_payment_cmd(password: String, id: i64) -> Result<(), String> {
+    let conn = get_authenticated_connection(&password)?;
+    delete_payment(&conn, id)
+        .map_err(|e| format!("Failed to delete payment: {}", e))
 }
 
 fn get_authenticated_connection(password: &str) -> Result<rusqlite::Connection, String> {

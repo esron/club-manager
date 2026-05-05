@@ -4,10 +4,12 @@ import { invoke } from '@tauri-apps/api/core';
 interface AuthContextType {
   isAuthenticated: boolean;
   password: string | null;
+  databaseMissing: boolean;
   checkFirstLaunch: () => Promise<boolean>;
   setupPassword: (pwd: string) => Promise<void>;
   login: (pwd: string) => Promise<boolean>;
   logout: () => void;
+  initializeDatabase: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,11 +17,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState<string | null>(null);
+  const [databaseMissing, setDatabaseMissing] = useState(false);
 
   const checkFirstLaunch = async (): Promise<boolean> => {
     try {
       const result = await invoke<boolean>('check_first_launch');
-      console.log('First launch check:', result);
       return result;
     } catch (err) {
       console.error('Error checking first launch:', err);
@@ -29,9 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const setupPassword = async (pwd: string): Promise<void> => {
     try {
-      console.log('Setting up password...');
       await invoke('setup_password', { password: pwd });
-      console.log('Password setup successful');
       setPassword(pwd);
       setIsAuthenticated(true);
     } catch (err) {
@@ -42,16 +42,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (pwd: string): Promise<boolean> => {
     try {
-      console.log('Attempting login...');
       const isValid = await invoke<boolean>('verify_password_cmd', { password: pwd });
-      console.log('Login result:', isValid);
       if (isValid) {
         setPassword(pwd);
+
+        // Check if database is initialized
+        const dbInitialized = await invoke<boolean>('check_database_initialized', { password: pwd });
+
+        if (!dbInitialized) {
+          setDatabaseMissing(true);
+        }
+
         setIsAuthenticated(true);
       }
       return isValid;
     } catch (err) {
       console.error('Error in login:', err);
+      throw err;
+    }
+  };
+
+  const initializeDatabase = async (): Promise<void> => {
+    if (!password) throw new Error('Not authenticated');
+    try {
+      await invoke('initialize_database', { password });
+      setDatabaseMissing(false);
+    } catch (err) {
+      console.error('Error initializing database:', err);
       throw err;
     }
   };
@@ -62,7 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, password, checkFirstLaunch, setupPassword, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, password, databaseMissing, checkFirstLaunch, setupPassword, login, logout, initializeDatabase }}>
       {children}
     </AuthContext.Provider>
   );

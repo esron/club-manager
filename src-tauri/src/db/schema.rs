@@ -60,6 +60,16 @@ pub fn initialize_schema(conn: &Connection) -> Result<()> {
         [],
     )?;
 
+    // Fix any corrupted active field values (string instead of integer)
+    conn.execute(
+        "UPDATE members SET active = 1 WHERE typeof(active) = 'text' AND (active = 'true' OR active = '1')",
+        [],
+    )?;
+    conn.execute(
+        "UPDATE members SET active = 0 WHERE typeof(active) = 'text' AND (active = 'false' OR active = '0')",
+        [],
+    )?;
+
     Ok(())
 }
 

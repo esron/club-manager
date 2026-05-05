@@ -13,7 +13,6 @@ export const LoginScreen = () => {
     try {
       const success = await login(password);
       if (!success) {
-        console.log('Login failed: incorrect password');
         setError('Senha incorreta');
         setPassword('');
       }

@@ -10,6 +10,9 @@ interface AppContextType {
   refreshPayments: () => Promise<void>;
   addMember: (name: string, startDate: string) => Promise<void>;
   addPayment: (memberId: number, month: number, year: number, amount: number, paymentDate: string) => Promise<void>;
+  updateMemberActive: (id: number, active: boolean) => Promise<void>;
+  updateMemberName: (id: number, name: string) => Promise<void>;
+  deletePayment: (id: number) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -21,8 +24,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshMembers = async () => {
     if (!password) return;
-    const data = await invoke<Member[]>('get_members_cmd', { password });
-    setMembers(data);
+    try {
+      const data = await invoke<Member[]>('get_all_members_cmd', { password });
+      setMembers(data);
+    } catch (err) {
+      console.error('Error refreshing members:', err);
+    }
   };
 
   const refreshPayments = async () => {
@@ -43,8 +50,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     await refreshPayments();
   };
 
+  const updateMemberActive = async (id: number, active: boolean) => {
+    if (!password) throw new Error('Not authenticated');
+    await invoke('update_member_active_cmd', { password, id, active });
+    await refreshMembers();
+  };
+
+  const updateMemberName = async (id: number, name: string) => {
+    if (!password) throw new Error('Not authenticated');
+    await invoke('update_member_name_cmd', { password, id, name });
+    await refreshMembers();
+  };
+
+  const deletePayment = async (id: number) => {
+    if (!password) throw new Error('Not authenticated');
+    await invoke('delete_payment_cmd', { password, id });
+    await refreshPayments();
+  };
+
   return (
-    <AppContext.Provider value={{ members, payments, refreshMembers, refreshPayments, addMember, addPayment }}>
+    <AppContext.Provider value={{ members, payments, refreshMembers, refreshPayments, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment }}>
       {children}
     </AppContext.Provider>
   );
