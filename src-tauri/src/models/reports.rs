@@ -3,8 +3,6 @@ use rusqlite::{Connection, Result as SqlResult};
 use std::collections::HashMap;
 use chrono::{NaiveDate, Datelike};
 
-use super::debt::calculate_member_debt;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DebtStatusRow {
     pub member_id: i64,
@@ -45,6 +43,63 @@ const MONTH_ABBREV_PT: [&str; 12] = [
     "Jul", "Ago", "Set", "Out", "Nov", "Dez"
 ];
 
+/// Calculate debt for a member using pre-fetched payments
+/// This avoids N+1 queries by calculating debt from already-fetched payment data
+fn calculate_debt_from_payments(
+    member_id: i64,
+    start_date: &str,
+    as_of_date: &str,
+    min_fee: f64,
+    payments: &[(i64, i32, i32, f64)],
+) -> SqlResult<f64> {
+    // Parse dates
+    let start = NaiveDate::parse_from_str(start_date, "%Y-%m-%d")
+        .map_err(|_| rusqlite::Error::InvalidQuery)?;
+    let as_of = NaiveDate::parse_from_str(as_of_date, "%Y-%m-%d")
+        .map_err(|_| rusqlite::Error::InvalidQuery)?;
+
+    let mut debt = 0.0;
+    let mut current = start;
+
+    // Iterate through each month from start_date to as_of_date
+    while current <= as_of {
+        let month = current.month() as i32;
+        let year = current.year() as i32;
+
+        // Check if payment exists for this member in this month
+        let has_payment = payments.iter().any(|p| {
+            p.0 == member_id && p.1 == month && p.2 == year
+        });
+
+        if !has_payment {
+            // Calculate grace period deadline (10th of next month)
+            let next_month = if month == 12 {
+                NaiveDate::from_ymd_opt(year + 1, 1, 10)
+            } else {
+                NaiveDate::from_ymd_opt(year, (month + 1) as u32, 10)
+            };
+
+            // If we're past the grace period, add debt
+            if let Some(deadline) = next_month {
+                if as_of > deadline {
+                    debt += min_fee;
+                }
+            }
+        }
+
+        // Move to next month
+        current = if current.month() == 12 {
+            NaiveDate::from_ymd_opt(current.year() + 1, 1, 1)
+                .unwrap_or(current)
+        } else {
+            NaiveDate::from_ymd_opt(current.year(), current.month() + 1, 1)
+                .unwrap_or(current)
+        };
+    }
+
+    Ok(debt)
+}
+
 pub fn generate_debt_status_report(
     conn: &Connection,
     include_inactive: bool,
@@ -57,7 +112,11 @@ pub fn generate_debt_status_report(
 
     let mut stmt = conn.prepare(query)?;
     let rows = stmt.query_map([], |row| {
-        Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        Ok((
+            row.get::<_, i64>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+        ))
     })?;
 
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
@@ -69,11 +128,26 @@ pub fn generate_debt_status_report(
         |row| row.get(0)
     ).unwrap_or(15.0);
 
+    // Fetch ALL payments once before member loop to avoid N+1 queries
+    let all_payments: Vec<(i64, i32, i32, f64)> = {
+        let mut stmt = conn.prepare("SELECT member_id, month, year, amount_brl FROM payments")?;
+        let payments = stmt.query_map([], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+        })?;
+        payments.collect::<Result<Vec<_>, _>>()?
+    };
+
     let mut members = Vec::new();
 
     for row in rows {
-        let (member_id, member_name) = row?;
-        let total_debt = calculate_member_debt(conn, member_id, &today)?;
+        let (member_id, member_name, start_date) = row?;
+        let total_debt = calculate_debt_from_payments(
+            member_id,
+            &start_date,
+            &today,
+            min_fee,
+            &all_payments,
+        )?;
 
         // Count unpaid months using the pre-fetched minimum fee
         let unpaid_count = if total_debt > 0.0 {
@@ -91,7 +165,7 @@ pub fn generate_debt_status_report(
     }
 
     // Sort by debt descending
-    members.sort_by(|a, b| b.total_debt.partial_cmp(&a.total_debt).unwrap());
+    members.sort_by(|a, b| b.total_debt.partial_cmp(&a.total_debt).unwrap_or(std::cmp::Ordering::Equal));
 
     Ok(DebtStatusReport {
         members,
