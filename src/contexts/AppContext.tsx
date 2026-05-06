@@ -10,7 +10,7 @@ interface AppContextType {
   paymentModalOpen: boolean;
   paymentModalPrefill?: PaymentPrefill;
   showReAuthModal: boolean;
-  reAuthCallback: (() => void) | null;
+  reAuthCallback: ((password: string) => void) | null;
   refreshMembers: () => Promise<void>;
   refreshPayments: () => Promise<void>;
   refreshSettings: () => Promise<void>;
@@ -19,7 +19,7 @@ interface AppContextType {
   getAllDebts: () => Promise<MemberDebtInfo[]>;
   openPaymentModal: (prefill?: PaymentPrefill) => void;
   closePaymentModal: () => void;
-  requestReAuth: (callback: () => void) => void;
+  requestReAuth: (callback: (password: string) => void) => void;
   closeReAuthModal: () => void;
   addMember: (name: string, startDate: string) => Promise<void>;
   addPayment: (memberId: number, month: number, year: number, amount: number, paymentDate: string) => Promise<void>;
@@ -38,7 +38,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentModalPrefill, setPaymentModalPrefill] = useState<PaymentPrefill>();
   const [showReAuthModal, setShowReAuthModal] = useState(false);
-  const [reAuthCallback, setReAuthCallback] = useState<(() => void) | null>(null);
+  const [reAuthCallback, setReAuthCallback] = useState<((password: string) => void) | null>(null);
 
   const refreshMembers = async () => {
     if (!password) return;
@@ -127,7 +127,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setPaymentModalPrefill(undefined);
   };
 
-  const requestReAuth = (callback: () => void) => {
+  const requestReAuth = (callback: (password: string) => void) => {
     setReAuthCallback(() => callback);
     setShowReAuthModal(true);
   };

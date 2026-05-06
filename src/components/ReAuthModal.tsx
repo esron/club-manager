@@ -45,10 +45,11 @@ export const ReAuthModal = () => {
       await invoke('verify_password_cmd', { password });
 
       // Password correct - execute callback
+      const passwordCopy = password;
       closeReAuthModal();
       setPassword('');
       if (reAuthCallback) {
-        reAuthCallback();
+        reAuthCallback(passwordCopy);
       }
     } catch (err) {
       // Distinguish between password failure and system errors

@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { ReportType, ExportFormat } from '../types/reports';
+import { invoke } from '@tauri-apps/api/core';
+import { DebtStatusReport, PaymentHistoryReport, ReportType, ExportFormat } from '../types/reports';
+import { ReportPreviewTable } from './ReportPreviewTable';
+import { useApp } from '../contexts/AppContext';
 
 export const ReportsScreen = () => {
+  const { requestReAuth } = useApp();
   const [reportType, setReportType] = useState<ReportType>('debt_status');
   const [format, setFormat] = useState<ExportFormat>('csv');
   const [anonymize, setAnonymize] = useState(false);
@@ -9,6 +13,10 @@ export const ReportsScreen = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [dateError, setDateError] = useState('');
+  const [debtReport, setDebtReport] = useState<DebtStatusReport | undefined>(undefined);
+  const [paymentReport, setPaymentReport] = useState<PaymentHistoryReport | undefined>(undefined);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const validateDates = (): boolean => {
     if (reportType === 'payment_history') {
@@ -23,6 +31,23 @@ export const ReportsScreen = () => {
     }
     setDateError('');
     return true;
+  };
+
+  const loadDebtStatusReport = async (password: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      const report = await invoke<DebtStatusReport>('get_debt_status_report_cmd', {
+        password,
+        includeInactive,
+      });
+      setDebtReport(report);
+      setPaymentReport(undefined);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExport = () => {
@@ -163,21 +188,49 @@ export const ReportsScreen = () => {
           </label>
         </div>
 
-        {/* Export Button */}
-        <button
-          onClick={handleExport}
-          className="px-6 py-2 bg-dark-accent text-dark-text-primary rounded hover:bg-dark-accent/90 disabled:opacity-50"
-        >
-          Exportar
-        </button>
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              if (reportType === 'debt_status') {
+                requestReAuth((password) => loadDebtStatusReport(password));
+              }
+            }}
+            disabled={reportType === 'payment_history' && !validateDates()}
+            className="px-4 py-2 bg-dark-accent text-dark-text-primary rounded hover:bg-opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Visualizar
+          </button>
+          <button
+            onClick={handleExport}
+            className="px-6 py-2 bg-dark-accent text-dark-text-primary rounded hover:bg-dark-accent/90 disabled:opacity-50"
+          >
+            Exportar
+          </button>
+        </div>
       </div>
 
-      {/* Preview Area - Placeholder */}
+      {/* Preview Area */}
       <div className="bg-dark-surface rounded-lg p-6">
         <h2 className="text-lg font-semibold mb-4 text-dark-text-primary">Visualização</h2>
-        <div className="text-dark-text-secondary text-center py-8">
-          Configuração pronta. A visualização será implementada nas próximas etapas.
-        </div>
+        {loading && <div className="text-dark-text-primary">Carregando...</div>}
+        {error && <div className="text-red-500">{error}</div>}
+        {(debtReport || paymentReport) && (
+          <div className="mt-8">
+            <h3 className="text-xl font-semibold text-dark-text-primary mb-4">
+              Prévia do Relatório
+            </h3>
+            <ReportPreviewTable
+              debtReport={debtReport}
+              paymentReport={paymentReport}
+            />
+          </div>
+        )}
+        {!loading && !error && !debtReport && !paymentReport && (
+          <div className="text-dark-text-secondary text-center py-8">
+            Configuração pronta. Clique em "Visualizar" para ver a prévia do relatório.
+          </div>
+        )}
       </div>
     </div>
   );
