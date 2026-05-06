@@ -104,6 +104,14 @@ pub fn generate_debt_status_report(
     conn: &Connection,
     include_inactive: bool,
 ) -> SqlResult<DebtStatusReport> {
+    generate_debt_status_report_as_of(conn, include_inactive, None)
+}
+
+pub fn generate_debt_status_report_as_of(
+    conn: &Connection,
+    include_inactive: bool,
+    as_of_date: Option<&str>,
+) -> SqlResult<DebtStatusReport> {
     let query = if include_inactive {
         "SELECT id, name, start_date FROM members ORDER BY id"
     } else {
@@ -119,7 +127,8 @@ pub fn generate_debt_status_report(
         ))
     })?;
 
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let today = as_of_date.map(|s| s.to_string())
+        .unwrap_or_else(|| chrono::Local::now().format("%Y-%m-%d").to_string());
 
     // Fetch minimum fee setting once before the loop
     let min_fee: f64 = conn.query_row(
