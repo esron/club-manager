@@ -11,16 +11,8 @@ export const MainLayout = () => {
   const { members, payments, settings, refreshMembers, refreshPayments, refreshSettings, getAllDebts, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment, paymentModalOpen, paymentModalPrefill, openPaymentModal, closePaymentModal } = useApp();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'payments' | 'settings'>('dashboard');
   const [showAddMember, setShowAddMember] = useState(false);
-  const [showAddPayment, setShowAddPayment] = useState(false);
   const [memberName, setMemberName] = useState('');
   const [memberStartDate, setMemberStartDate] = useState('');
-  const [paymentMemberId, setPaymentMemberId] = useState<number>(0);
-  const [selectedMemberName, setSelectedMemberName] = useState('');
-  const [paymentMonth, setPaymentMonth] = useState(new Date().getMonth() + 1);
-  const [paymentYear, setPaymentYear] = useState(new Date().getFullYear());
-  const [paymentAmount, setPaymentAmount] = useState('15.00');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paymentError, setPaymentError] = useState('');
   const [memberError, setMemberError] = useState('');
   const [editingMemberId, setEditingMemberId] = useState<number | null>(null);
   const [editingMemberName, setEditingMemberName] = useState('');
@@ -79,25 +71,6 @@ export const MainLayout = () => {
     }
   };
 
-  const handleAddPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPaymentError('');
-    try {
-      await addPayment(paymentMemberId, paymentMonth, paymentYear, parseFloat(paymentAmount), paymentDate);
-      setSelectedMemberName('');
-      setPaymentMemberId(0);
-      setShowAddPayment(false);
-    } catch (err) {
-      console.error('Error adding payment:', err);
-      setPaymentError(String(err));
-    }
-  };
-
-  const handleMemberInputChange = (value: string) => {
-    setSelectedMemberName(value);
-    const member = activeMembers.find((m) => m.name === value);
-    setPaymentMemberId(member?.id || 0);
-  };
 
   const handleDeactivateMember = async (id: number) => {
     if (confirm('Tem certeza que deseja desativar este membro?')) {
@@ -481,91 +454,13 @@ export const MainLayout = () => {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-dark-text-primary">Pagamentos ({payments.length})</h2>
               <button
-                onClick={() => {
-                  setShowAddPayment(!showAddPayment);
-                  if (!showAddPayment) {
-                    setSelectedMemberName('');
-                    setPaymentMemberId(0);
-                    setPaymentError('');
-                  }
-                }}
+                onClick={() => openPaymentModal()}
                 className="bg-dark-accent text-white px-4 py-2 rounded hover:opacity-90"
                 disabled={activeMembers.length === 0}
               >
-                + Novo Pagamento
+                Novo Pagamento
               </button>
             </div>
-
-            {showAddPayment && (
-              <form onSubmit={handleAddPayment} className="bg-dark-surface p-4 rounded border border-dark-border mb-6">
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block mb-2 text-dark-text-secondary">Membro</label>
-                    <input
-                      type="text"
-                      list="members-list"
-                      value={selectedMemberName}
-                      onChange={(e) => handleMemberInputChange(e.target.value)}
-                      className="w-full bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2"
-                      placeholder="Digite para buscar..."
-                      required
-                    />
-                    <datalist id="members-list">
-                      {activeMembers.map((m) => (
-                        <option key={m.id} value={m.name} />
-                      ))}
-                    </datalist>
-                  </div>
-                  <div>
-                    <label className="block mb-2 text-dark-text-secondary">Mês/Ano</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        min={1}
-                        max={12}
-                        value={paymentMonth}
-                        onChange={(e) => setPaymentMonth(Number(e.target.value))}
-                        className="w-24 bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2"
-                        placeholder="Mês"
-                        required
-                      />
-                      <input
-                        type="number"
-                        value={paymentYear}
-                        onChange={(e) => setPaymentYear(Number(e.target.value))}
-                        className="w-32 bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2"
-                        placeholder="Ano"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block mb-2 text-dark-text-secondary">Valor (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="w-full bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-2 text-dark-text-secondary">Data de Pagamento</label>
-                    <DateInput
-                      value={paymentDate}
-                      onChange={setPaymentDate}
-                      className="w-full bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2"
-                      required
-                    />
-                  </div>
-                </div>
-                {paymentError && <p className="text-dark-error mb-4 text-sm">{paymentError}</p>}
-                <button type="submit" className="bg-dark-accent text-white px-4 py-2 rounded hover:opacity-90">
-                  Salvar
-                </button>
-              </form>
-            )}
 
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
