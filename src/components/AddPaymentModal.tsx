@@ -150,7 +150,7 @@ export const AddPaymentModal = ({ isOpen, onClose, prefill }: AddPaymentModalPro
             <select
               value={paymentMonth}
               onChange={(e) => setPaymentMonth(Number(e.target.value))}
-              className="w-full bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2 appearance-none"
+              className="w-full bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2"
               required
               disabled={isPrefilled}
             >
