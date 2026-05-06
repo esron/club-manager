@@ -61,21 +61,22 @@ pub fn generate_debt_status_report(
     })?;
 
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+
+    // Fetch minimum fee setting once before the loop
+    let min_fee: f64 = conn.query_row(
+        "SELECT value FROM settings WHERE key = 'minimum_fee_brl'",
+        [],
+        |row| row.get(0)
+    ).unwrap_or(15.0);
+
     let mut members = Vec::new();
 
     for row in rows {
         let (member_id, member_name) = row?;
         let total_debt = calculate_member_debt(conn, member_id, &today)?;
 
-        // Count unpaid months by querying debt details
+        // Count unpaid months using the pre-fetched minimum fee
         let unpaid_count = if total_debt > 0.0 {
-            // Get minimum fee setting
-            let min_fee: f64 = conn.query_row(
-                "SELECT value FROM settings WHERE key = 'minimum_fee_brl'",
-                [],
-                |row| row.get(0)
-            ).unwrap_or(15.0);
-
             (total_debt / min_fee).ceil() as i32
         } else {
             0
@@ -111,8 +112,10 @@ pub fn generate_payment_history_report(
 
     // Generate month columns
     let mut month_columns = Vec::new();
-    let mut current = NaiveDate::from_ymd_opt(start.year(), start.month(), 1).unwrap();
-    let end_month = NaiveDate::from_ymd_opt(end.year(), end.month(), 1).unwrap();
+    let mut current = NaiveDate::from_ymd_opt(start.year(), start.month(), 1)
+        .ok_or(rusqlite::Error::InvalidQuery)?;
+    let end_month = NaiveDate::from_ymd_opt(end.year(), end.month(), 1)
+        .ok_or(rusqlite::Error::InvalidQuery)?;
 
     while current <= end_month {
         let key = format!("{}-{:02}", current.year(), current.month());
@@ -125,10 +128,36 @@ pub fn generate_payment_history_report(
 
         // Move to next month
         current = if current.month() == 12 {
-            NaiveDate::from_ymd_opt(current.year() + 1, 1, 1).unwrap()
+            NaiveDate::from_ymd_opt(current.year() + 1, 1, 1)
+                .ok_or(rusqlite::Error::InvalidQuery)?
         } else {
-            NaiveDate::from_ymd_opt(current.year(), current.month() + 1, 1).unwrap()
+            NaiveDate::from_ymd_opt(current.year(), current.month() + 1, 1)
+                .ok_or(rusqlite::Error::InvalidQuery)?
         };
+    }
+
+    // Fetch ALL payments once before member loop to avoid N+1 queries
+    let mut all_payments_stmt = conn.prepare(
+        "SELECT member_id, month, year, amount_brl FROM payments ORDER BY member_id"
+    )?;
+    let all_payments_rows = all_payments_stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, i64>(0)?,
+            row.get::<_, i32>(1)?,
+            row.get::<_, i32>(2)?,
+            row.get::<_, f64>(3)?,
+        ))
+    })?;
+
+    // Group payments by member_id
+    let mut payments_by_member: HashMap<i64, HashMap<String, f64>> = HashMap::new();
+    for payment_row in all_payments_rows {
+        let (member_id, month, year, amount) = payment_row?;
+        let key = format!("{}-{:02}", year, month);
+        payments_by_member
+            .entry(member_id)
+            .or_insert_with(HashMap::new)
+            .insert(key, amount);
     }
 
     // Get all active members
@@ -147,27 +176,13 @@ pub fn generate_payment_history_report(
 
     for member_data in members_data {
         let (member_id, member_name, start_date_str) = member_data?;
-        let member_start = NaiveDate::parse_from_str(&start_date_str.split('T').next().unwrap(), "%Y-%m-%d")
+        let date_part = start_date_str.split('T').next()
+            .ok_or(rusqlite::Error::InvalidQuery)?;
+        let member_start = NaiveDate::parse_from_str(date_part, "%Y-%m-%d")
             .map_err(|_| rusqlite::Error::InvalidQuery)?;
 
-        // Get all payments for this member
-        let mut payment_stmt = conn.prepare(
-            "SELECT month, year, amount_brl FROM payments WHERE member_id = ?"
-        )?;
-        let payment_rows = payment_stmt.query_map([member_id], |row| {
-            Ok((
-                row.get::<_, i32>(0)?,
-                row.get::<_, i32>(1)?,
-                row.get::<_, f64>(2)?,
-            ))
-        })?;
-
-        let mut payments_map: HashMap<String, f64> = HashMap::new();
-        for payment_row in payment_rows {
-            let (month, year, amount) = payment_row?;
-            let key = format!("{}-{:02}", year, month);
-            payments_map.insert(key, amount);
-        }
+        // Look up payments from pre-fetched HashMap instead of querying
+        let payments_map = payments_by_member.get(&member_id).cloned().unwrap_or_default();
 
         // Build payments hash for all month columns
         let mut payments = HashMap::new();
