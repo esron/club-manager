@@ -6,10 +6,12 @@ import { SettingsScreen } from './SettingsScreen';
 import { DashboardScreen } from './DashboardScreen';
 import { MemberDetailView } from './MemberDetailView';
 import { AddPaymentModal } from './AddPaymentModal';
+import { ReportsScreen } from './ReportsScreen';
+import { ReAuthModal } from './ReAuthModal';
 
 export const MainLayout = () => {
   const { members, payments, refreshMembers, refreshPayments, refreshSettings, addMember, updateMemberActive, updateMemberName, deletePayment, paymentModalOpen, paymentModalPrefill, openPaymentModal, closePaymentModal } = useApp();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'payments' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'payments' | 'reports' | 'settings'>('dashboard');
   const [showAddMember, setShowAddMember] = useState(false);
   const [memberName, setMemberName] = useState('');
   const [memberStartDate, setMemberStartDate] = useState('');
@@ -145,6 +147,18 @@ export const MainLayout = () => {
             }`}
           >
             Pagamentos
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('reports');
+              setViewingMemberDetail(false);
+              setSelectedMemberId(null);
+            }}
+            className={`w-full text-left px-4 py-2 rounded mb-2 ${
+              activeTab === 'reports' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
+            }`}
+          >
+            Relatórios
           </button>
           <button
             onClick={() => {
@@ -544,6 +558,8 @@ export const MainLayout = () => {
           </div>
         )}
 
+        {activeTab === 'reports' && <ReportsScreen />}
+
           {activeTab === 'settings' && (
             <SettingsScreen />
           )}
@@ -555,6 +571,7 @@ export const MainLayout = () => {
         onClose={closePaymentModal}
         prefill={paymentModalPrefill}
       />
+      <ReAuthModal />
     </div>
   );
 };
