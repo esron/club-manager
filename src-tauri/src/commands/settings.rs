@@ -85,3 +85,52 @@ fn get_db_path() -> PathBuf {
     path.push("club.db");
     path
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_minimum_fee_valid_cases() {
+        assert!(validate_minimum_fee("15.00").is_ok());
+        assert!(validate_minimum_fee("0.01").is_ok());
+        assert!(validate_minimum_fee("9999.99").is_ok());
+        assert!(validate_minimum_fee("1").is_ok());
+        assert!(validate_minimum_fee("100").is_ok());
+    }
+
+    #[test]
+    fn test_validate_minimum_fee_rejects_negative() {
+        let result = validate_minimum_fee("-10");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Valor deve ser maior que zero");
+    }
+
+    #[test]
+    fn test_validate_minimum_fee_rejects_zero() {
+        let result = validate_minimum_fee("0");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Valor deve ser maior que zero");
+    }
+
+    #[test]
+    fn test_validate_minimum_fee_rejects_too_large() {
+        let result = validate_minimum_fee("10000");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("máximo"));
+    }
+
+    #[test]
+    fn test_validate_minimum_fee_rejects_too_many_decimals() {
+        let result = validate_minimum_fee("15.999");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Máximo 2 casas decimais");
+    }
+
+    #[test]
+    fn test_validate_minimum_fee_rejects_invalid_format() {
+        let result = validate_minimum_fee("abc");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Valor inválido");
+    }
+}
