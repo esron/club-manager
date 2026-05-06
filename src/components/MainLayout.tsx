@@ -309,15 +309,7 @@ export const MainLayout = () => {
                             </button>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => {
-                              setSelectedMemberId(member.id);
-                              setViewingMemberDetail(true);
-                            }}
-                            className="text-dark-accent hover:underline text-left"
-                          >
-                            {member.name}
-                          </button>
+                          <span>{member.name}</span>
                         )}
                       </td>
                       <td className="p-4 text-dark-text-secondary">{formatDate(member.start_date)}</td>
@@ -327,8 +319,17 @@ export const MainLayout = () => {
                       <td className="p-4">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => startEditingMember(member.id, member.name)}
+                            onClick={() => {
+                              setSelectedMemberId(member.id);
+                              setViewingMemberDetail(true);
+                            }}
                             className="bg-dark-accent text-white px-2 py-1 rounded text-sm hover:opacity-90"
+                          >
+                            Ver Detalhes
+                          </button>
+                          <button
+                            onClick={() => startEditingMember(member.id, member.name)}
+                            className="bg-dark-surface border border-dark-border text-dark-text-primary px-2 py-1 rounded text-sm hover:bg-dark-bg"
                             disabled={editingMemberId !== null}
                           >
                             Editar
