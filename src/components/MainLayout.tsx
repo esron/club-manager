@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { formatCurrency, formatDate } from '../types';
 import { DateInput } from './DateInput';
@@ -8,7 +8,7 @@ import { MemberDetailView } from './MemberDetailView';
 import { AddPaymentModal } from './AddPaymentModal';
 
 export const MainLayout = () => {
-  const { members, payments, settings, refreshMembers, refreshPayments, refreshSettings, getAllDebts, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment, paymentModalOpen, paymentModalPrefill, openPaymentModal, closePaymentModal } = useApp();
+  const { members, payments, refreshMembers, refreshPayments, refreshSettings, addMember, updateMemberActive, updateMemberName, deletePayment, paymentModalOpen, paymentModalPrefill, openPaymentModal, closePaymentModal } = useApp();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'payments' | 'settings'>('dashboard');
   const [showAddMember, setShowAddMember] = useState(false);
   const [memberName, setMemberName] = useState('');
@@ -31,13 +31,9 @@ export const MainLayout = () => {
     refreshSettings();
   }, []);
 
-  const activeMembers = members.filter((m) => {
-    return m.active === true || m.active === 1 || (m.active as any) === "true" || (m.active as any) === "1";
-  });
+  const activeMembers = members.filter((m) => m.active === true);
 
-  const inactiveMembers = members.filter((m) => {
-    return m.active === false || m.active === 0 || (m.active as any) === "false" || (m.active as any) === "0";
-  });
+  const inactiveMembers = members.filter((m) => m.active === false);
 
   const paginatedActiveMembers = activeMembers.slice(
     (membersPage - 1) * membersPageSize,

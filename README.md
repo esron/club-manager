@@ -9,6 +9,35 @@ Before running the application, you need to install:
 1. **Rust** - Visit https://www.rust-lang.org/learn/get-started#installing-rust
 2. **Linux System Dependencies** (webkit2gtk & rsvg2) - Visit https://tauri.app/guides/prerequisites/#linux
 
+## Phase 2 Features
+
+**Dashboard**
+- Overview of total outstanding debt across all members
+- Display of active member count
+- Quick access to member detail views
+
+**Settings**
+- Configurable minimum membership fee
+- Persisted settings stored in local database
+
+**Member Management**
+- Member detail view with full payment history
+- Debt calculation showing unpaid months with amounts
+- List of months with outstanding payments
+- Quick link to pay specific unpaid months
+
+**Payment System**
+- Global payment modal accessible from toolbar
+- Auto-fill payment form when selecting from unpaid months
+- Payment date, amount, and period tracking
+- Portuguese-language payment descriptions
+
+**User Interface**
+- Complete Portuguese interface
+- Dark theme throughout application
+- Responsive table layouts with pagination
+- Intuitive navigation between sections
+
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Tailwind CSS 3.x
