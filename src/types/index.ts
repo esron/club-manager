@@ -64,3 +64,8 @@ export const formatMonthYear = (month: number, year: number): string => {
   }
   return `${MONTH_NAMES_PT[month - 1]} ${year}`;
 };
+
+export const MONTH_ABBREV_PT = [
+  'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+];
