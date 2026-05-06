@@ -86,7 +86,7 @@ export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) =>
     return (
       <div className="flex-1 p-8">
         <p className="text-dark-text-secondary">Membro não encontrado</p>
-        <button onClick={onBack} className="mt-4 text-dark-accent">
+        <button onClick={onBack} className="mt-4 text-dark-accent hover:underline bg-transparent border-0 cursor-pointer">
           ← Voltar para Membros
         </button>
       </div>
@@ -106,7 +106,7 @@ export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) =>
   return (
     <div className="flex-1 p-8">
       {/* Back button */}
-      <button onClick={onBack} className="mb-4 text-dark-accent hover:underline">
+      <button onClick={onBack} className="mb-4 text-dark-accent hover:underline bg-transparent border-0 cursor-pointer">
         ← Voltar para Membros
       </button>
 
