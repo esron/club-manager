@@ -189,7 +189,8 @@ export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) =>
                             month: um.month,
                             year: um.year,
                           })}
-                          className="text-dark-accent text-sm hover:underline"
+                          className="text-dark-accent text-sm hover:underline bg-transparent border-0 cursor-pointer"
+                          style={{ color: '#3a5a7a' }}
                         >
                           + Adicionar Pagamento
                         </button>
