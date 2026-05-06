@@ -1,11 +1,13 @@
 use crate::models::reports::{
     generate_debt_status_report, generate_payment_history_report,
     DebtStatusReport, PaymentHistoryReport,
+    anonymize_report_debt, anonymize_report_payment,
 };
 use crate::security::config::load_config;
 use crate::security::password::derive_encryption_key;
 use crate::db::connection::open_encrypted_db;
 use std::path::PathBuf;
+use csv::{Writer, ByteRecord};
 
 #[tauri::command]
 pub fn get_debt_status_report_cmd(
@@ -60,4 +62,113 @@ fn get_db_path() -> PathBuf {
     std::fs::create_dir_all(&path).ok();
     path.push("club.db");
     path
+}
+
+fn export_debt_status_csv(
+    report: &DebtStatusReport,
+    file_path: &str,
+) -> Result<(), String> {
+    let mut wtr = Writer::from_path(file_path)
+        .map_err(|e| format!("Failed to create CSV file: {}", e))?;
+
+    // Write UTF-8 BOM for Excel compatibility
+    let bom_bytes: Vec<u8> = vec![0xEF, 0xBB, 0xBF];
+    let bom = ByteRecord::from(vec![bom_bytes.as_slice()]);
+    wtr.write_byte_record(&bom)
+        .map_err(|e| format!("Failed to write BOM: {}", e))?;
+
+    // Write header
+    wtr.write_record(&["Nome do Membro", "Dívida Total (R$)", "Meses Não Pagos"])
+        .map_err(|e| format!("Failed to write header: {}", e))?;
+
+    // Write rows
+    for row in &report.members {
+        wtr.write_record(&[
+            &row.member_name,
+            &format!("R$ {:.2}", row.total_debt).replace('.', ","),
+            &row.unpaid_month_count.to_string(),
+        ])
+        .map_err(|e| format!("Failed to write row: {}", e))?;
+    }
+
+    wtr.flush()
+        .map_err(|e| format!("Failed to flush CSV: {}", e))?;
+
+    Ok(())
+}
+
+fn export_payment_history_csv(
+    report: &PaymentHistoryReport,
+    file_path: &str,
+) -> Result<(), String> {
+    let mut wtr = Writer::from_path(file_path)
+        .map_err(|e| format!("Failed to create CSV file: {}", e))?;
+
+    // Write UTF-8 BOM
+    let bom_bytes: Vec<u8> = vec![0xEF, 0xBB, 0xBF];
+    let bom = ByteRecord::from(vec![bom_bytes.as_slice()]);
+    wtr.write_byte_record(&bom)
+        .map_err(|e| format!("Failed to write BOM: {}", e))?;
+
+    // Build header
+    let mut header = vec!["Nome do Membro".to_string(), "Início".to_string()];
+    for col in &report.month_columns {
+        header.push(col.display.clone());
+    }
+    wtr.write_record(&header)
+        .map_err(|e| format!("Failed to write header: {}", e))?;
+
+    // Write rows
+    for row in &report.members {
+        let mut record = vec![row.member_name.clone(), row.start_date.clone()];
+        for col in &report.month_columns {
+            record.push(row.payments.get(&col.key).cloned().unwrap_or_default());
+        }
+        wtr.write_record(&record)
+            .map_err(|e| format!("Failed to write row: {}", e))?;
+    }
+
+    wtr.flush()
+        .map_err(|e| format!("Failed to flush CSV: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn export_debt_status_csv_cmd(
+    password: String,
+    include_inactive: bool,
+    anonymize: bool,
+    file_path: String,
+) -> Result<(), String> {
+    let conn = get_authenticated_connection(&password)?;
+    let mut report = generate_debt_status_report(&conn, include_inactive)
+        .map_err(|e| format!("Failed to generate report: {}", e))?;
+
+    if anonymize {
+        report = anonymize_report_debt(report);
+    }
+
+    export_debt_status_csv(&report, &file_path)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn export_payment_history_csv_cmd(
+    password: String,
+    start_date: String,
+    end_date: String,
+    anonymize: bool,
+    file_path: String,
+) -> Result<(), String> {
+    let conn = get_authenticated_connection(&password)?;
+    let mut report = generate_payment_history_report(&conn, &start_date, &end_date)
+        .map_err(|e| format!("Failed to generate report: {}", e))?;
+
+    if anonymize {
+        report = anonymize_report_payment(report);
+    }
+
+    export_payment_history_csv(&report, &file_path)?;
+    Ok(())
 }
