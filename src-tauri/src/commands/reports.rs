@@ -7,7 +7,7 @@ use crate::security::config::load_config;
 use crate::security::password::derive_encryption_key;
 use crate::db::connection::open_encrypted_db;
 use std::path::PathBuf;
-use csv::{Writer, ByteRecord};
+use csv::Writer;
 
 #[tauri::command]
 pub fn get_debt_status_report_cmd(
@@ -72,9 +72,7 @@ fn export_debt_status_csv(
         .map_err(|e| format!("Failed to create CSV file: {}", e))?;
 
     // Write UTF-8 BOM for Excel compatibility
-    let bom_bytes: Vec<u8> = vec![0xEF, 0xBB, 0xBF];
-    let bom = ByteRecord::from(vec![bom_bytes.as_slice()]);
-    wtr.write_byte_record(&bom)
+    wtr.write_record(&["\u{FEFF}"])
         .map_err(|e| format!("Failed to write BOM: {}", e))?;
 
     // Write header
@@ -104,10 +102,8 @@ fn export_payment_history_csv(
     let mut wtr = Writer::from_path(file_path)
         .map_err(|e| format!("Failed to create CSV file: {}", e))?;
 
-    // Write UTF-8 BOM
-    let bom_bytes: Vec<u8> = vec![0xEF, 0xBB, 0xBF];
-    let bom = ByteRecord::from(vec![bom_bytes.as_slice()]);
-    wtr.write_byte_record(&bom)
+    // Write UTF-8 BOM for Excel compatibility
+    wtr.write_record(&["\u{FEFF}"])
         .map_err(|e| format!("Failed to write BOM: {}", e))?;
 
     // Build header
