@@ -189,10 +189,10 @@ export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) =>
                             month: um.month,
                             year: um.year,
                           })}
-                          className="text-dark-accent text-sm hover:underline bg-transparent border-0 cursor-pointer"
-                          style={{ color: '#3a5a7a' }}
+                          className="bg-dark-accent text-white px-2 py-1 rounded text-sm hover:opacity-90 border-0 cursor-pointer"
+                          style={{ color: '#ffffff' }}
                         >
-                          + Adicionar Pagamento
+                          Adicionar Pagamento
                         </button>
                       </td>
                     </tr>
@@ -231,7 +231,8 @@ export const MemberDetailView = ({ memberId, onBack }: MemberDetailViewProps) =>
                     <td className="py-2">
                       <button
                         onClick={() => handleDeletePayment(payment.id)}
-                        className="text-dark-error text-sm hover:underline"
+                        className="bg-dark-error text-white px-2 py-1 rounded text-sm hover:opacity-90 border-0 cursor-pointer"
+                        style={{ color: '#ffffff' }}
                       >
                         Excluir
                       </button>
