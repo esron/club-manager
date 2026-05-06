@@ -23,7 +23,9 @@ export const ReAuthModal = () => {
 
     const handleEscapeKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        handleCancel();
+        setPassword('');
+        setError('');
+        closeReAuthModal();
       }
     };
 
@@ -31,7 +33,7 @@ export const ReAuthModal = () => {
     return () => {
       document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, [showReAuthModal]);
+  }, [showReAuthModal, closeReAuthModal]);
 
   if (!showReAuthModal) return null;
 
