@@ -323,20 +323,23 @@ export const MainLayout = () => {
                               setSelectedMemberId(member.id);
                               setViewingMemberDetail(true);
                             }}
-                            className="bg-dark-accent text-white px-2 py-1 rounded text-sm hover:opacity-90"
+                            className="bg-dark-accent text-white px-2 py-1 rounded text-sm hover:opacity-90 border-0 cursor-pointer"
+                            style={{ color: '#ffffff' }}
                           >
                             Ver Detalhes
                           </button>
                           <button
                             onClick={() => startEditingMember(member.id, member.name)}
-                            className="bg-dark-surface border border-dark-border text-dark-text-primary px-2 py-1 rounded text-sm hover:bg-dark-bg"
+                            className="bg-dark-surface border border-dark-border text-dark-text-primary px-2 py-1 rounded text-sm hover:bg-dark-bg cursor-pointer"
+                            style={{ color: '#e0e0e0' }}
                             disabled={editingMemberId !== null}
                           >
                             Editar
                           </button>
                           <button
                             onClick={() => handleDeactivateMember(member.id)}
-                            className="bg-dark-warning text-white px-2 py-1 rounded text-sm hover:opacity-90"
+                            className="bg-dark-warning text-white px-2 py-1 rounded text-sm hover:opacity-90 border-0 cursor-pointer"
+                            style={{ color: '#ffffff' }}
                             disabled={editingMemberId !== null}
                           >
                             Desativar
