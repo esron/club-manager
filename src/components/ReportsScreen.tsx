@@ -60,6 +60,26 @@ export const ReportsScreen = () => {
     }
   };
 
+  const loadPaymentHistoryReport = async (password: string) => {
+    if (!validateDates()) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      const report = await invoke<PaymentHistoryReport>('get_payment_history_report_cmd', {
+        password,
+        startDate,
+        endDate,
+      });
+      setPaymentReport(report);
+      setDebtReport(undefined);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleExport = () => {
     if (!validateDates()) return;
     // TODO: Will implement export logic in later tasks
@@ -202,8 +222,11 @@ export const ReportsScreen = () => {
         <div className="flex gap-3">
           <button
             onClick={() => {
+              if (!validateDates()) return;
               if (reportType === 'debt_status') {
                 requestReAuth((password) => loadDebtStatusReport(password));
+              } else if (reportType === 'payment_history') {
+                requestReAuth((password) => loadPaymentHistoryReport(password));
               }
             }}
             disabled={isPreviewDisabled}
