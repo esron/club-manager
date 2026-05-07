@@ -144,6 +144,10 @@ fn export_debt_status_xlsx(
         .set_background_color(Color::RGB(0x404040))
         .set_font_color(Color::White);
 
+    // Create currency format
+    let currency_format = Format::new()
+        .set_num_format("R$ #,##0.00");
+
     // Write headers
     worksheet.write_with_format(0, 0, "Nome do Membro", &header_format)
         .map_err(|e| format!("Failed to write header: {}", e))?;
@@ -157,7 +161,7 @@ fn export_debt_status_xlsx(
         let row_num = (idx + 1) as u32;
         worksheet.write(row_num, 0, &row.member_name)
             .map_err(|e| format!("Failed to write data: {}", e))?;
-        worksheet.write(row_num, 1, format!("R$ {:.2}", row.total_debt).replace('.', ","))
+        worksheet.write_with_format(row_num, 1, row.total_debt, &currency_format)
             .map_err(|e| format!("Failed to write data: {}", e))?;
         worksheet.write(row_num, 2, row.unpaid_month_count)
             .map_err(|e| format!("Failed to write data: {}", e))?;
