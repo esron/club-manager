@@ -16,6 +16,15 @@ pub enum PasswordError {
 
     #[error("Password verification failed")]
     VerificationError,
+
+    #[error("Encryption failed: {0}")]
+    EncryptionFailed(String),
+
+    #[error("Decryption failed: {0}")]
+    DecryptionFailed(String),
+
+    #[error("Invalid encrypted data")]
+    InvalidEncryptedData,
 }
 
 /// Hash a password using bcrypt with cost factor 12
@@ -54,19 +63,12 @@ pub fn derive_encryption_key(password: &str, salt: &[u8]) -> Result<Vec<u8>, Pas
 }
 
 /// Encrypt master key with password-derived key
-pub fn encrypt_master_key(master_key: &[u8; 32], password: &str, salt: &[u8]) -> Result<Vec<u8>, String> {
+pub fn encrypt_master_key(master_key: &[u8; 32], password: &str, salt: &[u8]) -> Result<Vec<u8>, PasswordError> {
     // Derive encryption key from password
-    let mut key_bytes = [0u8; 32];
-    pbkdf2::derive(
-        pbkdf2::PBKDF2_HMAC_SHA256,
-        std::num::NonZeroU32::new(100_000).unwrap(),
-        salt,
-        password.as_bytes(),
-        &mut key_bytes,
-    );
+    let key_bytes = derive_encryption_key(password, salt)?;
 
     // Create cipher
-    let cipher = Aes256Gcm::new(&key_bytes.into());
+    let cipher = Aes256Gcm::new(key_bytes.as_slice().into());
 
     // Generate random nonce (12 bytes for AES-GCM)
     let nonce_bytes: [u8; 12] = rand::random();
@@ -74,7 +76,7 @@ pub fn encrypt_master_key(master_key: &[u8; 32], password: &str, salt: &[u8]) ->
 
     // Encrypt
     let ciphertext = cipher.encrypt(nonce, master_key.as_ref())
-        .map_err(|e| format!("Encryption failed: {}", e))?;
+        .map_err(|e| PasswordError::EncryptionFailed(e.to_string()))?;
 
     // Prepend nonce to ciphertext
     let mut result = nonce_bytes.to_vec();
@@ -84,23 +86,17 @@ pub fn encrypt_master_key(master_key: &[u8; 32], password: &str, salt: &[u8]) ->
 }
 
 /// Decrypt master key with password-derived key
-pub fn decrypt_master_key(encrypted_data: &[u8], password: &str, salt: &[u8]) -> Result<[u8; 32], String> {
-    if encrypted_data.len() < 12 {
-        return Err("Invalid encrypted data".to_string());
+pub fn decrypt_master_key(encrypted_data: &[u8], password: &str, salt: &[u8]) -> Result<[u8; 32], PasswordError> {
+    // Check minimum size: 12 bytes nonce + 32 bytes key + 16 bytes auth tag = 60 bytes
+    if encrypted_data.len() != 60 {
+        return Err(PasswordError::InvalidEncryptedData);
     }
 
     // Derive encryption key from password
-    let mut key_bytes = [0u8; 32];
-    pbkdf2::derive(
-        pbkdf2::PBKDF2_HMAC_SHA256,
-        std::num::NonZeroU32::new(100_000).unwrap(),
-        salt,
-        password.as_bytes(),
-        &mut key_bytes,
-    );
+    let key_bytes = derive_encryption_key(password, salt)?;
 
     // Create cipher
-    let cipher = Aes256Gcm::new(&key_bytes.into());
+    let cipher = Aes256Gcm::new(key_bytes.as_slice().into());
 
     // Extract nonce and ciphertext
     let nonce = Nonce::from_slice(&encrypted_data[0..12]);
@@ -108,10 +104,10 @@ pub fn decrypt_master_key(encrypted_data: &[u8], password: &str, salt: &[u8]) ->
 
     // Decrypt
     let plaintext = cipher.decrypt(nonce, ciphertext)
-        .map_err(|e| format!("Decryption failed: {}", e))?;
+        .map_err(|e| PasswordError::DecryptionFailed(e.to_string()))?;
 
     if plaintext.len() != 32 {
-        return Err("Invalid master key size".to_string());
+        return Err(PasswordError::InvalidEncryptedData);
     }
 
     let mut master_key = [0u8; 32];
@@ -131,5 +127,87 @@ mod tests {
 
         assert!(verify_password(password, &hash).unwrap());
         assert!(!verify_password("wrong", &hash).unwrap());
+    }
+
+    #[test]
+    fn test_master_key_round_trip() {
+        let master_key = [42u8; 32];
+        let password = "test_password";
+        let salt = [1u8; 16];
+
+        let encrypted = encrypt_master_key(&master_key, password, &salt).unwrap();
+        let decrypted = decrypt_master_key(&encrypted, password, &salt).unwrap();
+
+        assert_eq!(master_key, decrypted);
+    }
+
+    #[test]
+    fn test_wrong_password_fails() {
+        let master_key = [42u8; 32];
+        let password = "correct_password";
+        let wrong_password = "wrong_password";
+        let salt = [1u8; 16];
+
+        let encrypted = encrypt_master_key(&master_key, password, &salt).unwrap();
+        let result = decrypt_master_key(&encrypted, wrong_password, &salt);
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), PasswordError::DecryptionFailed(_)));
+    }
+
+    #[test]
+    fn test_truncated_ciphertext_fails() {
+        let master_key = [42u8; 32];
+        let password = "test_password";
+        let salt = [1u8; 16];
+
+        let encrypted = encrypt_master_key(&master_key, password, &salt).unwrap();
+
+        // Truncate to less than required length
+        let truncated = &encrypted[0..30];
+        let result = decrypt_master_key(truncated, password, &salt);
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), PasswordError::InvalidEncryptedData));
+    }
+
+    #[test]
+    fn test_tampered_ciphertext_fails() {
+        let master_key = [42u8; 32];
+        let password = "test_password";
+        let salt = [1u8; 16];
+
+        let encrypted = encrypt_master_key(&master_key, password, &salt).unwrap();
+
+        // Tamper with the ciphertext (flip a bit in the encrypted portion)
+        let mut tampered = encrypted.clone();
+        tampered[20] ^= 0xFF;
+
+        let result = decrypt_master_key(&tampered, password, &salt);
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), PasswordError::DecryptionFailed(_)));
+    }
+
+    #[test]
+    fn test_different_salts_produce_different_ciphertext() {
+        let master_key = [42u8; 32];
+        let password = "test_password";
+        let salt1 = [1u8; 16];
+        let salt2 = [2u8; 16];
+
+        let encrypted1 = encrypt_master_key(&master_key, password, &salt1).unwrap();
+        let encrypted2 = encrypt_master_key(&master_key, password, &salt2).unwrap();
+
+        // Different salts should produce different encrypted data
+        assert_ne!(encrypted1, encrypted2);
+
+        // But both should decrypt correctly with their respective salts
+        assert_eq!(decrypt_master_key(&encrypted1, password, &salt1).unwrap(), master_key);
+        assert_eq!(decrypt_master_key(&encrypted2, password, &salt2).unwrap(), master_key);
+
+        // Cross-decryption should fail
+        assert!(decrypt_master_key(&encrypted1, password, &salt2).is_err());
+        assert!(decrypt_master_key(&encrypted2, password, &salt1).is_err());
     }
 }
