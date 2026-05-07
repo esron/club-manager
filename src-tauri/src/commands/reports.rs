@@ -84,7 +84,8 @@ fn export_debt_status_csv(
     wtr.write_record(&["Nome do Membro", "Dívida Total (R$)", "Meses Não Pagos"])
         .map_err(|e| format!("Failed to write header: {}", e))?;
 
-    // Write rows
+    // Write rows and calculate total
+    let mut total_debt = 0.0;
     for row in &report.members {
         wtr.write_record(&[
             &row.member_name,
@@ -92,7 +93,16 @@ fn export_debt_status_csv(
             &row.unpaid_month_count.to_string(),
         ])
         .map_err(|e| format!("Failed to write row: {}", e))?;
+        total_debt += row.total_debt;
     }
+
+    // Write totals row
+    wtr.write_record(&[
+        "TOTAL",
+        &format!("R$ {:.2}", total_debt).replace('.', ","),
+        "",
+    ])
+    .map_err(|e| format!("Failed to write totals row: {}", e))?;
 
     wtr.flush()
         .map_err(|e| format!("Failed to flush CSV: {}", e))?;
@@ -121,20 +131,56 @@ fn export_payment_history_csv(
     wtr.write_record(&header)
         .map_err(|e| format!("Failed to write header: {}", e))?;
 
-    // Write rows
+    // Initialize totals for each month
+    let mut month_totals: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+    for col in &report.month_columns {
+        month_totals.insert(col.key.clone(), 0.0);
+    }
+
+    // Write rows and calculate totals
     for row in &report.members {
         let mut record = vec![row.member_name.clone(), row.start_date.clone()];
         for col in &report.month_columns {
-            record.push(row.payments.get(&col.key).cloned().unwrap_or_default());
+            let payment_str = row.payments.get(&col.key).cloned().unwrap_or_default();
+            record.push(payment_str.clone());
+
+            // Extract value and add to total
+            if let Some(value) = extract_currency_value(&payment_str) {
+                *month_totals.get_mut(&col.key).unwrap() += value;
+            }
         }
         wtr.write_record(&record)
             .map_err(|e| format!("Failed to write row: {}", e))?;
     }
 
+    // Write totals row
+    let mut totals_record = vec!["TOTAL".to_string(), "".to_string()];
+    for col in &report.month_columns {
+        let total = month_totals.get(&col.key).unwrap_or(&0.0);
+        if *total > 0.0 {
+            totals_record.push(format!("R$ {:.2}", total).replace('.', ","));
+        } else {
+            totals_record.push(String::new());
+        }
+    }
+    wtr.write_record(&totals_record)
+        .map_err(|e| format!("Failed to write totals row: {}", e))?;
+
     wtr.flush()
         .map_err(|e| format!("Failed to flush CSV: {}", e))?;
 
     Ok(())
+}
+
+// Helper function to extract numeric value from currency string "R$ 15,00"
+fn extract_currency_value(s: &str) -> Option<f64> {
+    if s.is_empty() || s == "-" {
+        return None;
+    }
+
+    // Remove "R$ " prefix and convert comma to dot
+    let cleaned = s.replace("R$ ", "").replace(',', ".");
+    cleaned.parse::<f64>().ok()
 }
 
 fn export_debt_status_xlsx(
@@ -162,6 +208,14 @@ fn export_debt_status_xlsx(
     worksheet.write_with_format(0, 2, "Meses Não Pagos", &header_format)
         .map_err(|e| format!("Failed to write header: {}", e))?;
 
+    // Create totals format (bold)
+    let totals_format = Format::new()
+        .set_bold();
+
+    let totals_currency_format = Format::new()
+        .set_num_format("R$ #,##0.00")
+        .set_bold();
+
     // Write data
     for (idx, row) in report.members.iter().enumerate() {
         let row_num = (idx + 1) as u32;
@@ -171,6 +225,18 @@ fn export_debt_status_xlsx(
             .map_err(|e| format!("Failed to write data: {}", e))?;
         worksheet.write(row_num, 2, row.unpaid_month_count)
             .map_err(|e| format!("Failed to write data: {}", e))?;
+    }
+
+    // Write totals row
+    let totals_row = (report.members.len() + 1) as u32;
+    worksheet.write_with_format(totals_row, 0, "TOTAL", &totals_format)
+        .map_err(|e| format!("Failed to write totals label: {}", e))?;
+
+    // Use SUM formula for total debt
+    if report.members.len() > 0 {
+        let formula = format!("=SUM(B2:B{})", report.members.len() + 1);
+        worksheet.write_formula_with_format(totals_row, 1, formula.as_str(), &totals_currency_format)
+            .map_err(|e| format!("Failed to write totals formula: {}", e))?;
     }
 
     workbook.save(file_path)
@@ -190,6 +256,16 @@ fn export_payment_history_xlsx(
         .set_bold()
         .set_background_color(Color::RGB(0x404040))
         .set_font_color(Color::White);
+
+    let currency_format = Format::new()
+        .set_num_format("R$ #,##0.00");
+
+    let totals_format = Format::new()
+        .set_bold();
+
+    let totals_currency_format = Format::new()
+        .set_num_format("R$ #,##0.00")
+        .set_bold();
 
     // Write headers
     worksheet.write_with_format(0, 0, "Nome do Membro", &header_format)
@@ -211,9 +287,32 @@ fn export_payment_history_xlsx(
             .map_err(|e| format!("Failed to write data: {}", e))?;
 
         for (col_idx, col) in report.month_columns.iter().enumerate() {
-            let value = row.payments.get(&col.key).cloned().unwrap_or_default();
-            worksheet.write(row_num, (col_idx + 2) as u16, value)
-                .map_err(|e| format!("Failed to write data: {}", e))?;
+            let value_str = row.payments.get(&col.key).cloned().unwrap_or_default();
+
+            // If there's a numeric value, write it as number with currency format
+            if let Some(numeric_value) = extract_currency_value(&value_str) {
+                worksheet.write_with_format(row_num, (col_idx + 2) as u16, numeric_value, &currency_format)
+                    .map_err(|e| format!("Failed to write data: {}", e))?;
+            } else {
+                // Write dash or empty string as text
+                worksheet.write(row_num, (col_idx + 2) as u16, &value_str)
+                    .map_err(|e| format!("Failed to write data: {}", e))?;
+            }
+        }
+    }
+
+    // Write totals row
+    if report.members.len() > 0 {
+        let totals_row = (report.members.len() + 1) as u32;
+        worksheet.write_with_format(totals_row, 0, "TOTAL", &totals_format)
+            .map_err(|e| format!("Failed to write totals label: {}", e))?;
+
+        // Write SUM formulas for each month column
+        for (col_idx, _col) in report.month_columns.iter().enumerate() {
+            let col_letter = excel_column_letter(col_idx + 2);
+            let formula = format!("=SUM({}2:{}{})", col_letter, col_letter, report.members.len() + 1);
+            worksheet.write_formula_with_format(totals_row, (col_idx + 2) as u16, formula.as_str(), &totals_currency_format)
+                .map_err(|e| format!("Failed to write totals formula: {}", e))?;
         }
     }
 
@@ -221,6 +320,19 @@ fn export_payment_history_xlsx(
         .map_err(|e| format!("Failed to save XLSX: {}", e))?;
 
     Ok(())
+}
+
+// Helper function to convert column index to Excel column letter
+fn excel_column_letter(col_idx: usize) -> String {
+    let mut col = col_idx;
+    let mut result = String::new();
+
+    while col >= 26 {
+        result.insert(0, ((col % 26) as u8 + b'A') as char);
+        col = col / 26 - 1;
+    }
+    result.insert(0, (col as u8 + b'A') as char);
+    result
 }
 
 #[tauri::command]
