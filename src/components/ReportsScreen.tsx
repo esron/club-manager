@@ -83,7 +83,10 @@ export const ReportsScreen = () => {
 
   const handleExport = () => {
     if (!validateDates()) return;
-    if (!debtReport && !paymentReport) return;
+    if (!debtReport && !paymentReport) {
+      setError('Gere uma prévia do relatório antes de exportar');
+      return;
+    }
 
     requestReAuth(async (password) => {
       try {
@@ -291,7 +294,8 @@ export const ReportsScreen = () => {
           </button>
           <button
             onClick={handleExport}
-            className="px-6 py-2 bg-dark-accent text-dark-text-primary rounded hover:bg-dark-accent/90 disabled:opacity-50"
+            disabled={!debtReport && !paymentReport}
+            className="px-6 py-2 bg-dark-accent text-dark-text-primary rounded hover:bg-dark-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Exportar
           </button>
