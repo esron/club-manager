@@ -73,8 +73,8 @@ pub fn seed_database(password: String) -> Result<String, String> {
                     let pay_day = rng.gen_range(1..=28);
                     let payment_date = format!("{:04}-{:02}-{:02}", current_year, month, pay_day);
 
-                    // Random amount between 10.00 and 25.00
-                    let amount = rng.gen_range(1000..2500) as f64 / 100.0;
+                    // Random amount between 15.00 and 25.00
+                    let amount = rng.gen_range(1500..2500) as f64 / 100.0;
 
                     match create_payment(&conn, member_id, month, current_year, amount, &payment_date) {
                         Ok(_) => payments_created += 1,
