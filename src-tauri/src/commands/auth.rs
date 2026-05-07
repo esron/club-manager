@@ -194,6 +194,46 @@ pub fn verify_password_cmd(password: String) -> Result<bool, String> {
     Ok(true)
 }
 
+/// Change user password
+#[tauri::command]
+pub fn change_password(current_password: String, new_password: String) -> Result<(), String> {
+    let config_path = get_config_path();
+    let mut config = load_config(&config_path)
+        .map_err(|e| format!("Failed to load config: {}", e))?;
+
+    // Verify current password
+    let is_valid = verify_password(&current_password, &config.password_hash)
+        .map_err(|e| format!("Failed to verify password: {}", e))?;
+
+    if !is_valid {
+        return Err("Current password is incorrect".to_string());
+    }
+
+    // Decrypt master key with current password
+    let encrypted_master_key = config.master_key_encrypted
+        .ok_or("Master key not found in config".to_string())?;
+
+    let master_key = decrypt_master_key(&encrypted_master_key, &current_password, &config.salt)
+        .map_err(|e| format!("Failed to decrypt master key: {}", e))?;
+
+    // Re-encrypt master key with new password
+    let new_encrypted_master_key = encrypt_master_key(&master_key, &new_password, &config.salt)
+        .map_err(|e| format!("Failed to encrypt master key: {}", e))?;
+
+    // Hash new password
+    let new_password_hash = hash_password(&new_password)
+        .map_err(|e| format!("Failed to hash password: {}", e))?;
+
+    // Update config
+    config.password_hash = new_password_hash;
+    config.master_key_encrypted = Some(new_encrypted_master_key);
+
+    save_config(&config, &config_path)
+        .map_err(|e| format!("Failed to save config: {}", e))?;
+
+    Ok(())
+}
+
 /// Get config file path
 fn get_config_path() -> PathBuf {
     let mut path = dirs::data_local_dir()
