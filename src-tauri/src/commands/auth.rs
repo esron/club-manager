@@ -38,6 +38,7 @@ pub fn setup_password(password: String) -> Result<(), String> {
     let config = AppConfig {
         password_hash,
         salt: salt.clone(),
+        master_key_encrypted: None,
         minimum_fee_brl: "15.00".to_string(),
         created_at: Utc::now().to_rfc3339(),
     };
