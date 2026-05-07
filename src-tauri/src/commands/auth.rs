@@ -4,6 +4,7 @@ use crate::db::connection::open_encrypted_db;
 use crate::db::schema::initialize_schema;
 use std::path::PathBuf;
 use chrono::Utc;
+use zeroize::Zeroizing;
 
 /// Check if this is the first launch (config file doesn't exist)
 #[tauri::command]
@@ -48,9 +49,9 @@ pub fn migrate_to_master_key(password: String) -> Result<(), String> {
     }
 
     // Derive current encryption key from password
-    let current_key = derive_encryption_key(&password, &config.salt)
-        .map_err(|e| format!("Failed to derive key: {}", e))?;
-    let current_key_hex = hex::encode(&current_key);
+    let current_key = Zeroizing::new(derive_encryption_key(&password, &config.salt)
+        .map_err(|e| format!("Failed to derive key: {}", e))?);
+    let current_key_hex = hex::encode(&*current_key);
 
     // Open database with current key
     let db_path = get_db_path();
@@ -58,21 +59,29 @@ pub fn migrate_to_master_key(password: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to open database: {}", e))?;
 
     // Generate new random master key
-    let master_key: [u8; 32] = rand::random();
-    let master_key_hex = hex::encode(&master_key);
-
-    // Re-encrypt database with master key
-    conn.execute(&format!("PRAGMA rekey = \"x'{}'\";", master_key_hex), [])
-        .map_err(|e| format!("Failed to re-encrypt database: {}", e))?;
+    let master_key = Zeroizing::new(rand::random::<[u8; 32]>());
+    let master_key_hex = hex::encode(&*master_key);
 
     // Encrypt master key with password-derived key
     let encrypted_master_key = encrypt_master_key(&master_key, &password, &config.salt)
         .map_err(|e| format!("Failed to encrypt master key: {}", e))?;
 
-    // Update config
+    // CRITICAL: Save config FIRST before rekeying database
+    // If rekey succeeds but config save fails, data would be irrecoverably lost
     config.master_key_encrypted = Some(encrypted_master_key);
     save_config(&config, &config_path)
         .map_err(|e| format!("Failed to save config: {}", e))?;
+
+    // Re-encrypt database with master key
+    conn.execute_batch(&format!("PRAGMA rekey = \"x'{}'\";", master_key_hex))
+        .map_err(|e| format!("Failed to re-encrypt database: {}", e))?;
+
+    // Close connection to flush changes
+    drop(conn);
+
+    // Verify rekey succeeded by reopening with new master key
+    let _verify_conn = open_encrypted_db(&db_path, &master_key_hex)
+        .map_err(|_| "Failed to verify database re-encryption".to_string())?;
 
     Ok(())
 }
@@ -95,8 +104,8 @@ pub fn setup_password(password: String) -> Result<(), String> {
     let salt: Vec<u8> = (0..16).map(|_| rand::random::<u8>()).collect();
 
     // Generate random master key
-    let master_key: [u8; 32] = rand::random();
-    let master_key_hex = hex::encode(&master_key);
+    let master_key = Zeroizing::new(rand::random::<[u8; 32]>());
+    let master_key_hex = hex::encode(&*master_key);
 
     // Encrypt master key with password
     let encrypted_master_key = encrypt_master_key(&master_key, &password, &salt)
@@ -144,19 +153,30 @@ pub fn verify_password_cmd(password: String) -> Result<bool, String> {
         return Ok(false);
     }
 
-    // Decrypt master key
-    let encrypted_master_key = config.master_key_encrypted
-        .ok_or("Master key not found in config".to_string())?;
-
-    let master_key = decrypt_master_key(&encrypted_master_key, &password, &config.salt)
-        .map_err(|e| format!("Failed to decrypt master key: {}", e))?;
-
-    let master_key_hex = hex::encode(&master_key);
-
-    // Test database connection with master key
+    // Check if this is a pre-migration config (master_key_encrypted is None)
     let db_path = get_db_path();
-    let _conn = open_encrypted_db(&db_path, &master_key_hex)
-        .map_err(|_| "Failed to open database with password".to_string())?;
+
+    if let Some(encrypted_master_key) = &config.master_key_encrypted {
+        // Post-migration: decrypt master key and test database connection
+        let master_key = Zeroizing::new(decrypt_master_key(encrypted_master_key, &password, &config.salt)
+            .map_err(|e| format!("Failed to decrypt master key: {}", e))?);
+
+        let master_key_hex = hex::encode(&*master_key);
+
+        // Test database connection with master key
+        let _conn = open_encrypted_db(&db_path, &master_key_hex)
+            .map_err(|_| "Failed to open database with password".to_string())?;
+    } else {
+        // Pre-migration fallback: derive key from password and test database connection
+        let key = Zeroizing::new(derive_encryption_key(&password, &config.salt)
+            .map_err(|e| format!("Failed to derive key: {}", e))?);
+
+        let key_hex = hex::encode(&*key);
+
+        // Test database connection with password-derived key
+        let _conn = open_encrypted_db(&db_path, &key_hex)
+            .map_err(|_| "Failed to open database with password".to_string())?;
+    }
 
     Ok(true)
 }
