@@ -49,18 +49,18 @@ pub fn migrate_to_master_key(password: String) -> Result<(), String> {
     }
 
     // Derive current encryption key from password
-    let current_key = Zeroizing::new(derive_encryption_key(&password, &config.salt)
-        .map_err(|e| format!("Failed to derive key: {}", e))?);
-    let current_key_hex = hex::encode(&*current_key);
+    let current_key = derive_encryption_key(&password, &config.salt)
+        .map_err(|e| format!("Failed to derive key: {}", e))?;
+    let current_key_hex = Zeroizing::new(hex::encode(&*current_key));
 
     // Open database with current key
     let db_path = get_db_path();
-    let conn = open_encrypted_db(&db_path, &current_key_hex)
+    let conn = open_encrypted_db(&db_path, &*current_key_hex)
         .map_err(|e| format!("Failed to open database: {}", e))?;
 
     // Generate new random master key
     let master_key = Zeroizing::new(rand::random::<[u8; 32]>());
-    let master_key_hex = hex::encode(&*master_key);
+    let master_key_hex = Zeroizing::new(hex::encode(&*master_key));
 
     // Encrypt master key with password-derived key
     let encrypted_master_key = encrypt_master_key(&master_key, &password, &config.salt)
@@ -73,15 +73,23 @@ pub fn migrate_to_master_key(password: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to save config: {}", e))?;
 
     // Re-encrypt database with master key
-    conn.execute_batch(&format!("PRAGMA rekey = \"x'{}'\";", master_key_hex))
-        .map_err(|e| format!("Failed to re-encrypt database: {}", e))?;
+    if let Err(e) = conn.execute_batch(&format!("PRAGMA rekey = \"x'{}'\";", *master_key_hex)) {
+        // Rollback config
+        config.master_key_encrypted = None;
+        let _ = save_config(&config, &config_path);
+        return Err(format!("Failed to re-encrypt database: {}", e));
+    }
 
     // Close connection to flush changes
     drop(conn);
 
     // Verify rekey succeeded by reopening with new master key
-    let _verify_conn = open_encrypted_db(&db_path, &master_key_hex)
-        .map_err(|_| "Failed to verify database re-encryption".to_string())?;
+    if let Err(e) = open_encrypted_db(&db_path, &*master_key_hex) {
+        // Rollback config
+        config.master_key_encrypted = None;
+        let _ = save_config(&config, &config_path);
+        return Err(format!("Failed to verify re-encryption: {}", e));
+    }
 
     Ok(())
 }
@@ -105,7 +113,7 @@ pub fn setup_password(password: String) -> Result<(), String> {
 
     // Generate random master key
     let master_key = Zeroizing::new(rand::random::<[u8; 32]>());
-    let master_key_hex = hex::encode(&*master_key);
+    let master_key_hex = Zeroizing::new(hex::encode(&*master_key));
 
     // Encrypt master key with password
     let encrypted_master_key = encrypt_master_key(&master_key, &password, &salt)
@@ -126,7 +134,7 @@ pub fn setup_password(password: String) -> Result<(), String> {
 
     // Create encrypted database with master key
     let db_path = get_db_path();
-    let conn = open_encrypted_db(&db_path, &master_key_hex)
+    let conn = open_encrypted_db(&db_path, &*master_key_hex)
         .map_err(|e| format!("Failed to create database: {}", e))?;
 
     // Initialize schema
@@ -158,23 +166,23 @@ pub fn verify_password_cmd(password: String) -> Result<bool, String> {
 
     if let Some(encrypted_master_key) = &config.master_key_encrypted {
         // Post-migration: decrypt master key and test database connection
-        let master_key = Zeroizing::new(decrypt_master_key(encrypted_master_key, &password, &config.salt)
-            .map_err(|e| format!("Failed to decrypt master key: {}", e))?);
+        let master_key = decrypt_master_key(encrypted_master_key, &password, &config.salt)
+            .map_err(|e| format!("Failed to decrypt master key: {}", e))?;
 
-        let master_key_hex = hex::encode(&*master_key);
+        let master_key_hex = Zeroizing::new(hex::encode(&*master_key));
 
         // Test database connection with master key
-        let _conn = open_encrypted_db(&db_path, &master_key_hex)
+        let _conn = open_encrypted_db(&db_path, &*master_key_hex)
             .map_err(|_| "Failed to open database with password".to_string())?;
     } else {
         // Pre-migration fallback: derive key from password and test database connection
-        let key = Zeroizing::new(derive_encryption_key(&password, &config.salt)
-            .map_err(|e| format!("Failed to derive key: {}", e))?);
+        let key = derive_encryption_key(&password, &config.salt)
+            .map_err(|e| format!("Failed to derive key: {}", e))?;
 
-        let key_hex = hex::encode(&*key);
+        let key_hex = Zeroizing::new(hex::encode(&*key));
 
         // Test database connection with password-derived key
-        let _conn = open_encrypted_db(&db_path, &key_hex)
+        let _conn = open_encrypted_db(&db_path, &*key_hex)
             .map_err(|_| "Failed to open database with password".to_string())?;
     }
 

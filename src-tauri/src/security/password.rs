@@ -6,6 +6,7 @@ use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
 };
+use zeroize::Zeroizing;
 
 const PBKDF2_ITERATIONS: u32 = 100_000;
 
@@ -44,8 +45,8 @@ pub fn verify_password(password: &str, hash: &str) -> Result<bool, PasswordError
 /// * `salt` - 16-byte salt (should be random and stored with config)
 ///
 /// # Returns
-/// 32-byte encryption key suitable for AES-256
-pub fn derive_encryption_key(password: &str, salt: &[u8]) -> Result<Vec<u8>, PasswordError> {
+/// 32-byte encryption key suitable for AES-256, wrapped in Zeroizing
+pub fn derive_encryption_key(password: &str, salt: &[u8]) -> Result<Zeroizing<Vec<u8>>, PasswordError> {
     let iterations = NonZeroU32::new(PBKDF2_ITERATIONS)
         .ok_or(PasswordError::VerificationError)?;
 
@@ -59,7 +60,7 @@ pub fn derive_encryption_key(password: &str, salt: &[u8]) -> Result<Vec<u8>, Pas
         &mut key,
     );
 
-    Ok(key)
+    Ok(Zeroizing::new(key))
 }
 
 /// Encrypt master key with password-derived key
@@ -86,7 +87,7 @@ pub fn encrypt_master_key(master_key: &[u8; 32], password: &str, salt: &[u8]) ->
 }
 
 /// Decrypt master key with password-derived key
-pub fn decrypt_master_key(encrypted_data: &[u8], password: &str, salt: &[u8]) -> Result<[u8; 32], PasswordError> {
+pub fn decrypt_master_key(encrypted_data: &[u8], password: &str, salt: &[u8]) -> Result<Zeroizing<[u8; 32]>, PasswordError> {
     // Check minimum size: 12 bytes nonce + 32 bytes key + 16 bytes auth tag = 60 bytes
     if encrypted_data.len() != 60 {
         return Err(PasswordError::InvalidEncryptedData);
@@ -103,8 +104,8 @@ pub fn decrypt_master_key(encrypted_data: &[u8], password: &str, salt: &[u8]) ->
     let ciphertext = &encrypted_data[12..];
 
     // Decrypt
-    let plaintext = cipher.decrypt(nonce, ciphertext)
-        .map_err(|e| PasswordError::DecryptionFailed(e.to_string()))?;
+    let plaintext = Zeroizing::new(cipher.decrypt(nonce, ciphertext)
+        .map_err(|e| PasswordError::DecryptionFailed(e.to_string()))?);
 
     if plaintext.len() != 32 {
         return Err(PasswordError::InvalidEncryptedData);
@@ -113,7 +114,7 @@ pub fn decrypt_master_key(encrypted_data: &[u8], password: &str, salt: &[u8]) ->
     let mut master_key = [0u8; 32];
     master_key.copy_from_slice(&plaintext);
 
-    Ok(master_key)
+    Ok(Zeroizing::new(master_key))
 }
 
 #[cfg(test)]
@@ -138,7 +139,7 @@ mod tests {
         let encrypted = encrypt_master_key(&master_key, password, &salt).unwrap();
         let decrypted = decrypt_master_key(&encrypted, password, &salt).unwrap();
 
-        assert_eq!(master_key, decrypted);
+        assert_eq!(master_key, *decrypted);
     }
 
     #[test]
@@ -203,8 +204,8 @@ mod tests {
         assert_ne!(encrypted1, encrypted2);
 
         // But both should decrypt correctly with their respective salts
-        assert_eq!(decrypt_master_key(&encrypted1, password, &salt1).unwrap(), master_key);
-        assert_eq!(decrypt_master_key(&encrypted2, password, &salt2).unwrap(), master_key);
+        assert_eq!(*decrypt_master_key(&encrypted1, password, &salt1).unwrap(), master_key);
+        assert_eq!(*decrypt_master_key(&encrypted2, password, &salt2).unwrap(), master_key);
 
         // Cross-decryption should fail
         assert!(decrypt_master_key(&encrypted1, password, &salt2).is_err());
