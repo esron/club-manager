@@ -44,6 +44,7 @@ pub fn run() {
             commands::settings::get_setting_cmd,
             commands::settings::update_setting_cmd,
             commands::seed::seed_database,
+            commands::seed::clear_database,
         ]);
     }
 
