@@ -8,6 +8,7 @@ use crate::security::password::derive_encryption_key;
 use crate::db::connection::open_encrypted_db;
 use std::path::PathBuf;
 use csv::Writer;
+use rust_xlsxwriter::{Workbook, Format, Color};
 
 #[tauri::command]
 pub fn get_debt_status_report_cmd(
@@ -130,6 +131,88 @@ fn export_payment_history_csv(
     Ok(())
 }
 
+fn export_debt_status_xlsx(
+    report: &DebtStatusReport,
+    file_path: &str,
+) -> Result<(), String> {
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+
+    // Create header format
+    let header_format = Format::new()
+        .set_bold()
+        .set_background_color(Color::RGB(0x404040))
+        .set_font_color(Color::White);
+
+    // Write headers
+    worksheet.write_with_format(0, 0, "Nome do Membro", &header_format)
+        .map_err(|e| format!("Failed to write header: {}", e))?;
+    worksheet.write_with_format(0, 1, "Dívida Total (R$)", &header_format)
+        .map_err(|e| format!("Failed to write header: {}", e))?;
+    worksheet.write_with_format(0, 2, "Meses Não Pagos", &header_format)
+        .map_err(|e| format!("Failed to write header: {}", e))?;
+
+    // Write data
+    for (idx, row) in report.members.iter().enumerate() {
+        let row_num = (idx + 1) as u32;
+        worksheet.write(row_num, 0, &row.member_name)
+            .map_err(|e| format!("Failed to write data: {}", e))?;
+        worksheet.write(row_num, 1, format!("R$ {:.2}", row.total_debt).replace('.', ","))
+            .map_err(|e| format!("Failed to write data: {}", e))?;
+        worksheet.write(row_num, 2, row.unpaid_month_count)
+            .map_err(|e| format!("Failed to write data: {}", e))?;
+    }
+
+    workbook.save(file_path)
+        .map_err(|e| format!("Failed to save XLSX: {}", e))?;
+
+    Ok(())
+}
+
+fn export_payment_history_xlsx(
+    report: &PaymentHistoryReport,
+    file_path: &str,
+) -> Result<(), String> {
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+
+    let header_format = Format::new()
+        .set_bold()
+        .set_background_color(Color::RGB(0x404040))
+        .set_font_color(Color::White);
+
+    // Write headers
+    worksheet.write_with_format(0, 0, "Nome do Membro", &header_format)
+        .map_err(|e| format!("Failed to write header: {}", e))?;
+    worksheet.write_with_format(0, 1, "Início", &header_format)
+        .map_err(|e| format!("Failed to write header: {}", e))?;
+
+    for (idx, col) in report.month_columns.iter().enumerate() {
+        worksheet.write_with_format(0, (idx + 2) as u16, &col.display, &header_format)
+            .map_err(|e| format!("Failed to write header: {}", e))?;
+    }
+
+    // Write data
+    for (row_idx, row) in report.members.iter().enumerate() {
+        let row_num = (row_idx + 1) as u32;
+        worksheet.write(row_num, 0, &row.member_name)
+            .map_err(|e| format!("Failed to write data: {}", e))?;
+        worksheet.write(row_num, 1, &row.start_date)
+            .map_err(|e| format!("Failed to write data: {}", e))?;
+
+        for (col_idx, col) in report.month_columns.iter().enumerate() {
+            let value = row.payments.get(&col.key).cloned().unwrap_or_default();
+            worksheet.write(row_num, (col_idx + 2) as u16, value)
+                .map_err(|e| format!("Failed to write data: {}", e))?;
+        }
+    }
+
+    workbook.save(file_path)
+        .map_err(|e| format!("Failed to save XLSX: {}", e))?;
+
+    Ok(())
+}
+
 #[tauri::command]
 pub fn export_debt_status_csv_cmd(
     password: String,
@@ -166,5 +249,44 @@ pub fn export_payment_history_csv_cmd(
     }
 
     export_payment_history_csv(&report, &file_path)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn export_debt_status_xlsx_cmd(
+    password: String,
+    include_inactive: bool,
+    anonymize: bool,
+    file_path: String,
+) -> Result<(), String> {
+    let conn = get_authenticated_connection(&password)?;
+    let mut report = generate_debt_status_report(&conn, include_inactive)
+        .map_err(|e| format!("Failed to generate report: {}", e))?;
+
+    if anonymize {
+        report = anonymize_report_debt(report);
+    }
+
+    export_debt_status_xlsx(&report, &file_path)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn export_payment_history_xlsx_cmd(
+    password: String,
+    start_date: String,
+    end_date: String,
+    anonymize: bool,
+    file_path: String,
+) -> Result<(), String> {
+    let conn = get_authenticated_connection(&password)?;
+    let mut report = generate_payment_history_report(&conn, &start_date, &end_date)
+        .map_err(|e| format!("Failed to generate report: {}", e))?;
+
+    if anonymize {
+        report = anonymize_report_payment(report);
+    }
+
+    export_payment_history_xlsx(&report, &file_path)?;
     Ok(())
 }
