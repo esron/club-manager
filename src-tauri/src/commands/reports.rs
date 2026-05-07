@@ -9,6 +9,8 @@ use crate::db::connection::open_encrypted_db;
 use std::path::PathBuf;
 use csv::Writer;
 use rust_xlsxwriter::{Workbook, Format, Color};
+use std::fs::File;
+use std::io::Write as IoWrite;
 
 #[tauri::command]
 pub fn get_debt_status_report_cmd(
@@ -69,12 +71,14 @@ fn export_debt_status_csv(
     report: &DebtStatusReport,
     file_path: &str,
 ) -> Result<(), String> {
-    let mut wtr = Writer::from_path(file_path)
+    // Create file and write UTF-8 BOM for Excel compatibility
+    let mut file = File::create(file_path)
         .map_err(|e| format!("Failed to create CSV file: {}", e))?;
-
-    // Write UTF-8 BOM for Excel compatibility
-    wtr.write_record(&["\u{FEFF}"])
+    file.write_all(&[0xEF, 0xBB, 0xBF])
         .map_err(|e| format!("Failed to write BOM: {}", e))?;
+
+    // Create CSV writer from file
+    let mut wtr = Writer::from_writer(file);
 
     // Write header
     wtr.write_record(&["Nome do Membro", "Dívida Total (R$)", "Meses Não Pagos"])
@@ -100,12 +104,14 @@ fn export_payment_history_csv(
     report: &PaymentHistoryReport,
     file_path: &str,
 ) -> Result<(), String> {
-    let mut wtr = Writer::from_path(file_path)
+    // Create file and write UTF-8 BOM for Excel compatibility
+    let mut file = File::create(file_path)
         .map_err(|e| format!("Failed to create CSV file: {}", e))?;
-
-    // Write UTF-8 BOM for Excel compatibility
-    wtr.write_record(&["\u{FEFF}"])
+    file.write_all(&[0xEF, 0xBB, 0xBF])
         .map_err(|e| format!("Failed to write BOM: {}", e))?;
+
+    // Create CSV writer from file
+    let mut wtr = Writer::from_writer(file);
 
     // Build header
     let mut header = vec!["Nome do Membro".to_string(), "Início".to_string()];
