@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog';
 import { DebtStatusReport, PaymentHistoryReport, ReportType, ExportFormat } from '../types/reports';
 import { ReportPreviewTable } from './ReportPreviewTable';
+import { DateInput } from './DateInput';
 import { useApp } from '../contexts/AppContext';
 
 export const ReportsScreen = () => {
@@ -202,15 +203,12 @@ export const ReportsScreen = () => {
               <label htmlFor="startDate" className="block text-sm font-medium mb-2 text-dark-text-secondary">
                 Data Inicial
               </label>
-              <input
-                type="text"
-                id="startDate"
+              <DateInput
                 value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
+                onChange={(value) => {
+                  setStartDate(value);
                   setDateError('');
                 }}
-                placeholder="DD/MM/YYYY"
                 className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded text-dark-text-primary focus:border-dark-accent focus:outline-none"
               />
             </div>
@@ -218,15 +216,12 @@ export const ReportsScreen = () => {
               <label htmlFor="endDate" className="block text-sm font-medium mb-2 text-dark-text-secondary">
                 Data Final
               </label>
-              <input
-                type="text"
-                id="endDate"
+              <DateInput
                 value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
+                onChange={(value) => {
+                  setEndDate(value);
                   setDateError('');
                 }}
-                placeholder="DD/MM/YYYY"
                 className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded text-dark-text-primary focus:border-dark-accent focus:outline-none"
               />
             </div>
