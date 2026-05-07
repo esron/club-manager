@@ -9,7 +9,18 @@ Before running the application, you need to install:
 1. **Rust** - Visit https://www.rust-lang.org/learn/get-started#installing-rust
 2. **Linux System Dependencies** (webkit2gtk & rsvg2) - Visit https://tauri.app/guides/prerequisites/#linux
 
-## Phase 2 Features
+## Phase 3 Features
+
+**Reports & Export**
+- Dedicated Reports screen with export functionality
+- Debt Status report (current member debt summary)
+- Payment History report (matrix-style payment grid)
+- CSV and XLSX export formats
+- Anonymization support (Membro #1, #2, etc.)
+- Re-authentication before export for security
+- Preview functionality before exporting
+- Date range selection for payment history
+- Optional inactive member inclusion for debt status
 
 **Dashboard**
 - Overview of total outstanding debt across all members
