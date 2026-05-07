@@ -203,14 +203,15 @@ export const ReportsScreen = () => {
                 Data Inicial
               </label>
               <input
+                type="text"
                 id="startDate"
-                type="date"
                 value={startDate}
                 onChange={(e) => {
-                  setDateError('');
                   setStartDate(e.target.value);
+                  setDateError('');
                 }}
-                className="px-3 py-2 bg-dark-bg border border-dark-border rounded text-dark-text-primary"
+                placeholder="DD/MM/YYYY"
+                className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded text-dark-text-primary focus:border-dark-accent focus:outline-none"
               />
             </div>
             <div>
@@ -218,14 +219,15 @@ export const ReportsScreen = () => {
                 Data Final
               </label>
               <input
+                type="text"
                 id="endDate"
-                type="date"
                 value={endDate}
                 onChange={(e) => {
-                  setDateError('');
                   setEndDate(e.target.value);
+                  setDateError('');
                 }}
-                className="px-3 py-2 bg-dark-bg border border-dark-border rounded text-dark-text-primary"
+                placeholder="DD/MM/YYYY"
+                className="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded text-dark-text-primary focus:border-dark-accent focus:outline-none"
               />
             </div>
             {dateError && (
