@@ -12,8 +12,15 @@ export const ReportsScreen = () => {
   const [format, setFormat] = useState<ExportFormat>('csv');
   const [anonymize, setAnonymize] = useState(false);
   const [includeInactive, setIncludeInactive] = useState(false);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+
+  // Set default dates: Jan 1st of current year to today
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const defaultStartDate = `${currentYear}-01-01`;
+  const defaultEndDate = today.toISOString().split('T')[0];
+
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [dateError, setDateError] = useState('');
   const [debtReport, setDebtReport] = useState<DebtStatusReport | undefined>(undefined);
   const [paymentReport, setPaymentReport] = useState<PaymentHistoryReport | undefined>(undefined);
