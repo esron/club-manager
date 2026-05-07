@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { save } from '@tauri-apps/plugin-dialog';
 import { DebtStatusReport, PaymentHistoryReport, ReportType, ExportFormat } from '../types/reports';
 import { ReportPreviewTable } from './ReportPreviewTable';
 import { useApp } from '../contexts/AppContext';
@@ -82,8 +83,62 @@ export const ReportsScreen = () => {
 
   const handleExport = () => {
     if (!validateDates()) return;
-    // TODO: Will implement export logic in later tasks
-    console.log('Export requested');
+    if (!debtReport && !paymentReport) return;
+
+    requestReAuth(async (password) => {
+      try {
+        // Determine default filename
+        const today = new Date().toISOString().split('T')[0];
+        const defaultName = reportType === 'debt_status'
+          ? `relatorio-dividas-${today}`
+          : `historico-pagamentos-${today}`;
+        const extension = format === 'csv' ? '.csv' : '.xlsx';
+
+        // Show file picker
+        const filePath = await save({
+          defaultPath: defaultName + extension,
+          filters: [{
+            name: format.toUpperCase(),
+            extensions: [format]
+          }]
+        });
+
+        if (!filePath) {
+          // User cancelled
+          return;
+        }
+
+        // Call appropriate export command
+        if (reportType === 'debt_status') {
+          const cmd = format === 'csv'
+            ? 'export_debt_status_csv_cmd'
+            : 'export_debt_status_xlsx_cmd';
+
+          await invoke(cmd, {
+            password,
+            includeInactive,
+            anonymize,
+            filePath,
+          });
+        } else {
+          const cmd = format === 'csv'
+            ? 'export_payment_history_csv_cmd'
+            : 'export_payment_history_xlsx_cmd';
+
+          await invoke(cmd, {
+            password,
+            startDate,
+            endDate,
+            anonymize,
+            filePath,
+          });
+        }
+
+        alert('Relatório exportado com sucesso!');
+      } catch (err) {
+        setError(`Erro ao exportar: ${err}`);
+      }
+    });
   };
 
   return (
