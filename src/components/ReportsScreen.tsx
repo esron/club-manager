@@ -4,10 +4,10 @@ import { save } from '@tauri-apps/plugin-dialog';
 import { DebtStatusReport, PaymentHistoryReport, ReportType, ExportFormat } from '../types/reports';
 import { ReportPreviewTable } from './ReportPreviewTable';
 import { DateInput } from './DateInput';
-import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const ReportsScreen = () => {
-  const { requestReAuth } = useApp();
+  const { password } = useAuth();
   const [reportType, setReportType] = useState<ReportType>('debt_status');
   const [format, setFormat] = useState<ExportFormat>('csv');
   const [anonymize, setAnonymize] = useState(false);
@@ -52,7 +52,12 @@ export const ReportsScreen = () => {
     return true;
   };
 
-  const loadDebtStatusReport = async (password: string) => {
+  const loadDebtStatusReport = async () => {
+    if (!password) {
+      setError('Erro: usuário não autenticado');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
@@ -69,8 +74,13 @@ export const ReportsScreen = () => {
     }
   };
 
-  const loadPaymentHistoryReport = async (password: string) => {
+  const loadPaymentHistoryReport = async () => {
     if (!validateDates()) return;
+
+    if (!password) {
+      setError('Erro: usuário não autenticado');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -89,67 +99,70 @@ export const ReportsScreen = () => {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!validateDates()) return;
     if (!debtReport && !paymentReport) {
       setError('Gere uma prévia do relatório antes de exportar');
       return;
     }
 
-    requestReAuth(async (password) => {
-      try {
-        // Determine default filename
-        const today = new Date().toISOString().split('T')[0];
-        const defaultName = reportType === 'debt_status'
-          ? `relatorio-dividas-${today}`
-          : `historico-pagamentos-${today}`;
-        const extension = format === 'csv' ? '.csv' : '.xlsx';
+    if (!password) {
+      setError('Erro: usuário não autenticado');
+      return;
+    }
 
-        // Show file picker
-        const filePath = await save({
-          defaultPath: defaultName + extension,
-          filters: [{
-            name: format.toUpperCase(),
-            extensions: [format]
-          }]
-        });
+    try {
+      // Determine default filename
+      const today = new Date().toISOString().split('T')[0];
+      const defaultName = reportType === 'debt_status'
+        ? `relatorio-dividas-${today}`
+        : `historico-pagamentos-${today}`;
+      const extension = format === 'csv' ? '.csv' : '.xlsx';
 
-        if (!filePath) {
-          // User cancelled
-          return;
-        }
+      // Show file picker
+      const filePath = await save({
+        defaultPath: defaultName + extension,
+        filters: [{
+          name: format.toUpperCase(),
+          extensions: [format]
+        }]
+      });
 
-        // Call appropriate export command
-        if (reportType === 'debt_status') {
-          const cmd = format === 'csv'
-            ? 'export_debt_status_csv_cmd'
-            : 'export_debt_status_xlsx_cmd';
-
-          await invoke(cmd, {
-            password,
-            includeInactive,
-            anonymize,
-            filePath,
-          });
-        } else {
-          const cmd = format === 'csv'
-            ? 'export_payment_history_csv_cmd'
-            : 'export_payment_history_xlsx_cmd';
-
-          await invoke(cmd, {
-            password,
-            startDate,
-            endDate,
-            anonymize,
-            filePath,
-          });
-        }
-
-        alert('Relatório exportado com sucesso!');
-      } catch (err) {
-        setError(`Erro ao exportar: ${err}`);
+      if (!filePath) {
+        // User cancelled
+        return;
       }
-    });
+
+      // Call appropriate export command
+      if (reportType === 'debt_status') {
+        const cmd = format === 'csv'
+          ? 'export_debt_status_csv_cmd'
+          : 'export_debt_status_xlsx_cmd';
+
+        await invoke(cmd, {
+          password,
+          includeInactive,
+          anonymize,
+          filePath,
+        });
+      } else {
+        const cmd = format === 'csv'
+          ? 'export_payment_history_csv_cmd'
+          : 'export_payment_history_xlsx_cmd';
+
+        await invoke(cmd, {
+          password,
+          startDate,
+          endDate,
+          anonymize,
+          filePath,
+        });
+      }
+
+      alert('Relatório exportado com sucesso!');
+    } catch (err) {
+      setError(`Erro ao exportar: ${err}`);
+    }
   };
 
   return (
@@ -286,9 +299,9 @@ export const ReportsScreen = () => {
             onClick={() => {
               if (!validateDates()) return;
               if (reportType === 'debt_status') {
-                requestReAuth((password) => loadDebtStatusReport(password));
+                loadDebtStatusReport();
               } else if (reportType === 'payment_history') {
-                requestReAuth((password) => loadPaymentHistoryReport(password));
+                loadPaymentHistoryReport();
               }
             }}
             disabled={isPreviewDisabled}
