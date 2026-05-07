@@ -2,6 +2,10 @@ use bcrypt::{hash, verify};
 use ring::pbkdf2;
 use std::num::NonZeroU32;
 use thiserror::Error;
+use aes_gcm::{
+    aead::{Aead, KeyInit},
+    Aes256Gcm, Nonce,
+};
 
 const PBKDF2_ITERATIONS: u32 = 100_000;
 
@@ -47,6 +51,73 @@ pub fn derive_encryption_key(password: &str, salt: &[u8]) -> Result<Vec<u8>, Pas
     );
 
     Ok(key)
+}
+
+/// Encrypt master key with password-derived key
+pub fn encrypt_master_key(master_key: &[u8; 32], password: &str, salt: &[u8]) -> Result<Vec<u8>, String> {
+    // Derive encryption key from password
+    let mut key_bytes = [0u8; 32];
+    pbkdf2::derive(
+        pbkdf2::PBKDF2_HMAC_SHA256,
+        NonZeroU32::new(PBKDF2_ITERATIONS).unwrap(),
+        salt,
+        password.as_bytes(),
+        &mut key_bytes,
+    );
+
+    // Create cipher
+    let cipher = Aes256Gcm::new(&key_bytes.into());
+
+    // Generate random nonce (12 bytes for AES-GCM)
+    let nonce_bytes: [u8; 12] = rand::random();
+    let nonce = Nonce::from_slice(&nonce_bytes);
+
+    // Encrypt
+    let ciphertext = cipher.encrypt(nonce, master_key.as_ref())
+        .map_err(|e| format!("Encryption failed: {}", e))?;
+
+    // Prepend nonce to ciphertext
+    let mut result = nonce_bytes.to_vec();
+    result.extend_from_slice(&ciphertext);
+
+    Ok(result)
+}
+
+/// Decrypt master key with password-derived key
+pub fn decrypt_master_key(encrypted_data: &[u8], password: &str, salt: &[u8]) -> Result<[u8; 32], String> {
+    if encrypted_data.len() < 12 {
+        return Err("Invalid encrypted data".to_string());
+    }
+
+    // Derive encryption key from password
+    let mut key_bytes = [0u8; 32];
+    pbkdf2::derive(
+        pbkdf2::PBKDF2_HMAC_SHA256,
+        NonZeroU32::new(PBKDF2_ITERATIONS).unwrap(),
+        salt,
+        password.as_bytes(),
+        &mut key_bytes,
+    );
+
+    // Create cipher
+    let cipher = Aes256Gcm::new(&key_bytes.into());
+
+    // Extract nonce and ciphertext
+    let nonce = Nonce::from_slice(&encrypted_data[0..12]);
+    let ciphertext = &encrypted_data[12..];
+
+    // Decrypt
+    let plaintext = cipher.decrypt(nonce, ciphertext)
+        .map_err(|e| format!("Decryption failed: {}", e))?;
+
+    if plaintext.len() != 32 {
+        return Err("Invalid master key size".to_string());
+    }
+
+    let mut master_key = [0u8; 32];
+    master_key.copy_from_slice(&plaintext);
+
+    Ok(master_key)
 }
 
 #[cfg(test)]
