@@ -73,8 +73,9 @@ pub fn migrate_to_master_key(password: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to save config: {}", e))?;
 
     // Re-encrypt database with master key
-    if let Err(e) = conn.execute_batch(&format!("PRAGMA rekey = \"x'{}'\";", *master_key_hex)) {
-        // Rollback config
+    let pragma = Zeroizing::new(format!("PRAGMA rekey = \"x'{}'\";", *master_key_hex));
+    if let Err(e) = conn.execute_batch(&pragma) {
+        // Rollback config - rekey never succeeded
         config.master_key_encrypted = None;
         let _ = save_config(&config, &config_path);
         return Err(format!("Failed to re-encrypt database: {}", e));
@@ -84,14 +85,18 @@ pub fn migrate_to_master_key(password: String) -> Result<(), String> {
     drop(conn);
 
     // Verify rekey succeeded by reopening with new master key
-    if let Err(e) = open_encrypted_db(&db_path, &*master_key_hex) {
-        // Rollback config
-        config.master_key_encrypted = None;
-        let _ = save_config(&config, &config_path);
-        return Err(format!("Failed to verify re-encryption: {}", e));
+    match open_encrypted_db(&db_path, &*master_key_hex) {
+        Ok(_) => {
+            // Verification succeeded - migration complete
+            Ok(())
+        }
+        Err(e) => {
+            // Verification failed, but rekey may have succeeded
+            // Do NOT rollback config - database might be on new key
+            // Return error but don't corrupt state
+            Err(format!("Migration completed but verification failed: {}. Please try logging in with your password.", e))
+        }
     }
-
-    Ok(())
 }
 
 /// Setup initial password (first launch only)
