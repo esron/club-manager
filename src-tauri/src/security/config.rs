@@ -12,10 +12,12 @@ pub enum ConfigError {
     JsonError(#[from] serde_json::Error),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
     pub password_hash: String,
     pub salt: Vec<u8>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub master_key_encrypted: Option<Vec<u8>>,
     pub minimum_fee_brl: String,
     pub created_at: String,
 }
@@ -49,6 +51,7 @@ mod tests {
         let config = AppConfig {
             password_hash: "hash123".to_string(),
             salt: vec![1, 2, 3, 4],
+            master_key_encrypted: None,
             minimum_fee_brl: "15.00".to_string(),
             created_at: "2026-05-04T10:00:00Z".to_string(),
         };
@@ -57,5 +60,17 @@ mod tests {
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();
 
         assert_eq!(config.password_hash, deserialized.password_hash);
+    }
+
+    #[test]
+    fn test_load_config_without_master_key_encrypted() {
+        let json = r#"{
+            "password_hash": "hash123",
+            "salt": [1, 2, 3, 4],
+            "minimum_fee_brl": "15.00",
+            "created_at": "2026-05-04T10:00:00Z"
+        }"#;
+        let config: AppConfig = serde_json::from_str(json).unwrap();
+        assert!(config.master_key_encrypted.is_none());
     }
 }

@@ -9,6 +9,8 @@ interface AppContextType {
   settings: AppSettings;
   paymentModalOpen: boolean;
   paymentModalPrefill?: PaymentPrefill;
+  showReAuthModal: boolean;
+  reAuthCallback: ((password: string) => void) | null;
   refreshMembers: () => Promise<void>;
   refreshPayments: () => Promise<void>;
   refreshSettings: () => Promise<void>;
@@ -17,6 +19,8 @@ interface AppContextType {
   getAllDebts: () => Promise<MemberDebtInfo[]>;
   openPaymentModal: (prefill?: PaymentPrefill) => void;
   closePaymentModal: () => void;
+  requestReAuth: (callback: (password: string) => void) => void;
+  closeReAuthModal: () => void;
   addMember: (name: string, startDate: string) => Promise<void>;
   addPayment: (memberId: number, month: number, year: number, amount: number, paymentDate: string) => Promise<void>;
   updateMemberActive: (id: number, active: boolean) => Promise<void>;
@@ -33,6 +37,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<AppSettings>({ minimumFee: '15.00' });
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentModalPrefill, setPaymentModalPrefill] = useState<PaymentPrefill>();
+  const [showReAuthModal, setShowReAuthModal] = useState(false);
+  const [reAuthCallback, setReAuthCallback] = useState<((password: string) => void) | null>(null);
 
   const refreshMembers = async () => {
     if (!password) return;
@@ -121,8 +127,41 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setPaymentModalPrefill(undefined);
   };
 
+  const requestReAuth = (callback: (password: string) => void) => {
+    setReAuthCallback(() => callback);
+    setShowReAuthModal(true);
+  };
+
+  const closeReAuthModal = () => {
+    setShowReAuthModal(false);
+    setReAuthCallback(null);
+  };
+
   return (
-    <AppContext.Provider value={{ members, payments, settings, paymentModalOpen, paymentModalPrefill, refreshMembers, refreshPayments, refreshSettings, updateSetting, getMemberDebt, getAllDebts, openPaymentModal, closePaymentModal, addMember, addPayment, updateMemberActive, updateMemberName, deletePayment }}>
+    <AppContext.Provider value={{
+      members,
+      payments,
+      settings,
+      paymentModalOpen,
+      paymentModalPrefill,
+      showReAuthModal,
+      reAuthCallback,
+      refreshMembers,
+      refreshPayments,
+      refreshSettings,
+      updateSetting,
+      getMemberDebt,
+      getAllDebts,
+      openPaymentModal,
+      closePaymentModal,
+      requestReAuth,
+      closeReAuthModal,
+      addMember,
+      addPayment,
+      updateMemberActive,
+      updateMemberName,
+      deletePayment
+    }}>
       {children}
     </AppContext.Provider>
   );

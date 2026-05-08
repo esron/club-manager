@@ -65,6 +65,7 @@ mod tests {
         let config = AppConfig {
             password_hash: "test_hash".to_string(),
             salt: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+            master_key_encrypted: None,
             minimum_fee_brl: "15.00".to_string(),
             created_at: chrono::Utc::now().to_rfc3339(),
         };

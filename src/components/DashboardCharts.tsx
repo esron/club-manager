@@ -1,105 +1,133 @@
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { useAuth } from '../contexts/AuthContext';
+import type { ChartData } from '../types';
+import { formatCurrency } from '../types';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
-interface MonthData {
-  month_key: string;
-  month_display: string;
-  total_payments: number;
-  total_debt: number;
-}
+export const DashboardCharts = () => {
+  const { password } = useAuth();
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-interface DashboardChartsProps {
-  data: MonthData[];
-}
+  useEffect(() => {
+    const loadChartData = async () => {
+      if (!password) return;
 
-export const DashboardCharts = ({ data }: DashboardChartsProps) => {
-  // Format currency for tooltips
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
+      setLoading(true);
+      setError('');
+      try {
+        const data = await invoke<ChartData>('get_dashboard_chart_data_cmd', { password });
+        setChartData(data);
+      } catch (err) {
+        console.error('Error loading chart data:', err);
+        setError(String(err));
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-gray-800 border border-gray-700 p-3 rounded shadow-lg">
-          <p className="text-white font-semibold mb-1">{label}</p>
-          <p className="text-green-400">
-            {formatCurrency(payload[0].value)}
-          </p>
-        </div>
-      );
-    }
+    loadChartData();
+  }, [password]);
+
+  if (loading) {
+    return (
+      <div className="bg-dark-surface border border-dark-border rounded-lg p-6">
+        <p className="text-dark-text-secondary">Carregando gráficos...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-dark-error/10 border border-dark-error text-dark-error p-4 rounded">
+        Erro ao carregar gráficos: {error}
+      </div>
+    );
+  }
+
+  if (!chartData || chartData.months.length === 0) {
     return null;
-  };
-
-  const CustomTooltipDebt = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-gray-800 border border-gray-700 p-3 rounded shadow-lg">
-          <p className="text-white font-semibold mb-1">{label}</p>
-          <p className="text-red-400">
-            {formatCurrency(payload[0].value)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  }
 
   return (
     <div className="space-y-6">
-      {/* Payments Chart */}
+      {/* Payment Trend Chart */}
       <div className="bg-dark-surface border border-dark-border rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4 text-dark-text-primary">
+        <h2 className="text-lg font-semibold text-dark-text-primary mb-4">
           Pagamentos Mensais (últimos 6 meses)
         </h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={data}>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={chartData.months}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
               dataKey="month_display"
-              stroke="#9ca3af"
+              stroke="#9CA3AF"
               style={{ fontSize: '14px' }}
             />
             <YAxis
-              stroke="#9ca3af"
+              stroke="#9CA3AF"
               style={{ fontSize: '14px' }}
               tickFormatter={(value) => `R$ ${value}`}
             />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="total_payments" fill="#10b981" radius={[4, 4, 0, 0]} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#1F2937',
+                border: '1px solid #374151',
+                borderRadius: '0.5rem',
+                color: '#F3F4F6',
+              }}
+              formatter={(value: number) => [formatCurrency(value), 'Total']}
+            />
+            <Bar dataKey="total_payments" fill="#10B981" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Debt Trends Chart */}
+      {/* Debt Evolution Chart */}
       <div className="bg-dark-surface border border-dark-border rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4 text-dark-text-primary">
-          Evolução da Dívida (últimos 6 meses)
+        <h2 className="text-lg font-semibold text-dark-text-primary mb-4">
+          Evolução da Dívida Total (últimos 6 meses)
         </h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={data}>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={chartData.months}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
               dataKey="month_display"
-              stroke="#9ca3af"
+              stroke="#9CA3AF"
               style={{ fontSize: '14px' }}
             />
             <YAxis
-              stroke="#9ca3af"
+              stroke="#9CA3AF"
               style={{ fontSize: '14px' }}
               tickFormatter={(value) => `R$ ${value}`}
             />
-            <Tooltip content={<CustomTooltipDebt />} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#1F2937',
+                border: '1px solid #374151',
+                borderRadius: '0.5rem',
+                color: '#F3F4F6',
+              }}
+              formatter={(value: number) => [formatCurrency(value), 'Dívida Total']}
+            />
             <Line
               type="monotone"
               dataKey="total_debt"
-              stroke="#ef4444"
+              stroke="#EF4444"
               strokeWidth={2}
-              dot={{ fill: '#ef4444', r: 4 }}
+              dot={{ fill: '#EF4444', r: 4 }}
               activeDot={{ r: 6 }}
             />
           </LineChart>

@@ -12,7 +12,8 @@ fn greet(name: &str) -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init());
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init());
 
     #[cfg(debug_assertions)]
     {
@@ -21,6 +22,10 @@ pub fn run() {
             commands::auth::check_first_launch,
             commands::auth::setup_password,
             commands::auth::verify_password_cmd,
+            commands::auth::needs_migration,
+            commands::auth::migrate_to_master_key,
+            commands::auth::change_password,
+            commands::charts::get_dashboard_chart_data_cmd,
             commands::debt::get_member_debt_cmd,
             commands::debt::get_all_debts_cmd,
             commands::member::add_member_cmd,
@@ -32,11 +37,18 @@ pub fn run() {
             commands::payment::add_payment_cmd,
             commands::payment::get_payments_cmd,
             commands::payment::delete_payment_cmd,
+            commands::reports::get_debt_status_report_cmd,
+            commands::reports::get_payment_history_report_cmd,
+            commands::reports::export_debt_status_csv_cmd,
+            commands::reports::export_payment_history_csv_cmd,
+            commands::reports::export_debt_status_xlsx_cmd,
+            commands::reports::export_payment_history_xlsx_cmd,
             commands::database::check_database_initialized,
             commands::database::initialize_database,
             commands::settings::get_setting_cmd,
             commands::settings::update_setting_cmd,
             commands::seed::seed_database,
+            commands::seed::clear_database,
         ]);
     }
 
@@ -47,6 +59,10 @@ pub fn run() {
             commands::auth::check_first_launch,
             commands::auth::setup_password,
             commands::auth::verify_password_cmd,
+            commands::auth::needs_migration,
+            commands::auth::migrate_to_master_key,
+            commands::auth::change_password,
+            commands::charts::get_dashboard_chart_data_cmd,
             commands::debt::get_member_debt_cmd,
             commands::debt::get_all_debts_cmd,
             commands::member::add_member_cmd,
@@ -58,6 +74,12 @@ pub fn run() {
             commands::payment::add_payment_cmd,
             commands::payment::get_payments_cmd,
             commands::payment::delete_payment_cmd,
+            commands::reports::get_debt_status_report_cmd,
+            commands::reports::get_payment_history_report_cmd,
+            commands::reports::export_debt_status_csv_cmd,
+            commands::reports::export_payment_history_csv_cmd,
+            commands::reports::export_debt_status_xlsx_cmd,
+            commands::reports::export_payment_history_xlsx_cmd,
             commands::database::check_database_initialized,
             commands::database::initialize_database,
             commands::settings::get_setting_cmd,
