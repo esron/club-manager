@@ -75,7 +75,12 @@ export const SettingsScreen = () => {
       setTimeout(() => setPasswordSuccess(''), 3000);
     } catch (err) {
       console.error('Error changing password:', err);
-      setPasswordError(String(err));
+      const errStr = String(err);
+      if (errStr.includes('incorrect')) {
+        setPasswordError('Senha atual incorreta');
+      } else {
+        setPasswordError('Erro ao alterar senha. Tente novamente.');
+      }
     } finally {
       setPasswordLoading(false);
     }
@@ -128,6 +133,7 @@ export const SettingsScreen = () => {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               className="w-full bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2"
+              autoComplete="current-password"
               required
             />
           </div>
@@ -141,6 +147,7 @@ export const SettingsScreen = () => {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2"
+              autoComplete="new-password"
               minLength={8}
               required
             />
@@ -155,6 +162,7 @@ export const SettingsScreen = () => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2"
+              autoComplete="new-password"
               minLength={8}
               required
             />
