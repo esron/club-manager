@@ -8,10 +8,11 @@ import { MemberDetailView } from './MemberDetailView';
 import { AddPaymentModal } from './AddPaymentModal';
 import { ReportsScreen } from './ReportsScreen';
 import { ReAuthModal } from './ReAuthModal';
+import { HelpScreen } from './HelpScreen';
 
 export const MainLayout = () => {
   const { members, payments, refreshMembers, refreshPayments, refreshSettings, addMember, updateMemberActive, updateMemberName, deletePayment, paymentModalOpen, paymentModalPrefill, openPaymentModal, closePaymentModal } = useApp();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'payments' | 'reports' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'payments' | 'reports' | 'help' | 'settings'>('dashboard');
   const [showAddMember, setShowAddMember] = useState(false);
   const [memberName, setMemberName] = useState('');
   const [memberStartDate, setMemberStartDate] = useState('');
@@ -164,6 +165,18 @@ export const MainLayout = () => {
             }`}
           >
             Relatórios
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('help');
+              setViewingMemberDetail(false);
+              setSelectedMemberId(null);
+            }}
+            className={`w-full text-left px-4 py-2 rounded mb-2 ${
+              activeTab === 'help' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
+            }`}
+          >
+            Ajuda
           </button>
           <button
             onClick={() => {
@@ -598,6 +611,8 @@ export const MainLayout = () => {
         )}
 
         {activeTab === 'reports' && <ReportsScreen />}
+
+        {activeTab === 'help' && <HelpScreen />}
 
           {activeTab === 'settings' && (
             <SettingsScreen />
