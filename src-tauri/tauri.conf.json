@@ -28,7 +28,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "msi"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -40,6 +40,21 @@
     "copyright": "Copyright © 2026 essilva. All rights reserved.",
     "category": "Finance",
     "shortDescription": "Gestor de mensalidades do clube",
-    "longDescription": "Aplicativo desktop para gestão de mensalidades de clubes com criptografia de dados."
+    "longDescription": "Aplicativo desktop para gestão de mensalidades de clubes com criptografia de dados.",
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+      "wix": {
+        "language": "pt-BR"
+      },
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perUser",
+        "languages": ["PortugueseBR"],
+        "displayLanguageSelector": false,
+        "license": "../../LICENSE"
+      }
+    }
   }
 }
