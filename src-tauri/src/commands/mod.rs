@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod charts;
 pub mod database;
 pub mod debt;
 pub mod member;
