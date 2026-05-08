@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { FEATURES } from './config';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AppProvider, useApp } from './contexts/AppContext';
 import { CreatePasswordScreen } from './components/CreatePasswordScreen';
@@ -58,7 +59,8 @@ function AppContent() {
     <>
       <MainLayout />
       {databaseMissing && <DatabaseMissingModal />}
-      <DevTools />
+      {/* Only render DevTools in development */}
+      {FEATURES.devTools && <DevTools />}
     </>
   );
 }
