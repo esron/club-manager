@@ -26,6 +26,7 @@ export const MainLayout = () => {
   const [inactiveMembersPageSize, setInactiveMembersPageSize] = useState(15);
   const [paymentsPage, setPaymentsPage] = useState(1);
   const [paymentsPageSize, setPaymentsPageSize] = useState(15);
+  const [memberSearchTerm, setMemberSearchTerm] = useState('');
 
   useEffect(() => {
     refreshMembers();
@@ -33,9 +34,13 @@ export const MainLayout = () => {
     refreshSettings();
   }, []);
 
-  const activeMembers = members.filter((m) => m.active === true);
+  // Filter members by search term
+  const filteredMembers = memberSearchTerm
+    ? members.filter(m => m.name.toLowerCase().includes(memberSearchTerm.toLowerCase()))
+    : members;
 
-  const inactiveMembers = members.filter((m) => m.active === false);
+  const activeMembers = filteredMembers.filter((m) => m.active === true);
+  const inactiveMembers = filteredMembers.filter((m) => m.active === false);
 
   const paginatedActiveMembers = activeMembers.slice(
     (membersPage - 1) * membersPageSize,
@@ -194,6 +199,40 @@ export const MainLayout = () => {
 
         {activeTab === 'members' && !viewingMemberDetail && (
           <div className="p-8">
+            {/* Search Input */}
+            <div className="mb-6 max-w-md">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={memberSearchTerm}
+                  onChange={(e) => {
+                    setMemberSearchTerm(e.target.value);
+                    setMembersPage(1);
+                    setInactiveMembersPage(1);
+                  }}
+                  placeholder="Buscar membro por nome..."
+                  className="w-full bg-dark-bg border border-dark-border text-dark-text-primary rounded px-3 py-2 pr-8"
+                />
+                {memberSearchTerm && (
+                  <button
+                    onClick={() => {
+                      setMemberSearchTerm('');
+                      setMembersPage(1);
+                      setInactiveMembersPage(1);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-text-secondary hover:text-dark-text-primary"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              {memberSearchTerm && (
+                <p className="text-sm text-dark-text-secondary mt-2">
+                  {filteredMembers.length} {filteredMembers.length === 1 ? 'membro encontrado' : 'membros encontrados'}
+                </p>
+              )}
+            </div>
+
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-dark-text-primary">Membros Ativos ({activeMembers.length})</h2>
               <button
