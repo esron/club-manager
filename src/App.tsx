@@ -54,19 +54,6 @@ function AppContent() {
     return <LoginScreen />;
   }
 
-  if (initialLoading) {
-    return (
-      <div className="min-h-screen bg-dark-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-dark-accent"></div>
-          </div>
-          <p className="text-dark-text-primary">Carregando dados...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <MainLayout />

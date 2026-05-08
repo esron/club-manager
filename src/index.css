@@ -38,3 +38,12 @@
     @apply hover:opacity-90 transition-opacity;
   }
 }
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

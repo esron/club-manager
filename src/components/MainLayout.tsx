@@ -11,8 +11,9 @@ import { ReAuthModal } from './ReAuthModal';
 import { HelpScreen } from './HelpScreen';
 
 export const MainLayout = () => {
-  const { members, payments, refreshMembers, refreshPayments, refreshSettings, addMember, updateMemberActive, updateMemberName, deletePayment, paymentModalOpen, paymentModalPrefill, openPaymentModal, closePaymentModal } = useApp();
+  const { members, payments, initialLoading, refreshMembers, refreshPayments, refreshSettings, addMember, updateMemberActive, updateMemberName, deletePayment, paymentModalOpen, paymentModalPrefill, openPaymentModal, closePaymentModal } = useApp();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'payments' | 'reports' | 'help' | 'settings'>('dashboard');
+  const [tabLoading, setTabLoading] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [memberName, setMemberName] = useState('');
   const [memberStartDate, setMemberStartDate] = useState('');
@@ -29,11 +30,38 @@ export const MainLayout = () => {
   const [paymentsPageSize, setPaymentsPageSize] = useState(15);
   const [memberSearchTerm, setMemberSearchTerm] = useState('');
 
-  useEffect(() => {
-    refreshMembers();
-    refreshPayments();
-    refreshSettings();
-  }, []);
+  // Note: Initial data loading now happens in AppContext
+  // No need to load here - data is already available when this component mounts
+
+  const handleTabChange = async (tab: 'dashboard' | 'members' | 'payments' | 'reports' | 'help' | 'settings') => {
+    setTabLoading(true);
+    setActiveTab(tab);
+    setSelectedMemberId(null);
+    setViewingMemberDetail(false);
+
+    // Let React render the loading state, then clear it
+    await new Promise(resolve => setTimeout(resolve, 150));
+    setTabLoading(false);
+  };
+
+  const LoadingContent = () => (
+    <div className="flex items-center justify-center" style={{ height: '100%', width: '100%' }}>
+      <div className="text-center">
+        <div className="mb-4">
+          <div style={{
+            display: 'inline-block',
+            width: '3rem',
+            height: '3rem',
+            border: '3px solid rgba(59, 130, 246, 0.3)',
+            borderTopColor: '#3B82F6',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite'
+          }}></div>
+        </div>
+        <p className="text-dark-text-primary text-lg">Carregando...</p>
+      </div>
+    </div>
+  );
 
   // Filter members by search term
   const filteredMembers = memberSearchTerm
@@ -119,11 +147,7 @@ export const MainLayout = () => {
         <h1 className="text-xl font-bold mb-8 text-dark-text-primary">Gestor do Clube</h1>
         <nav>
           <button
-            onClick={() => {
-              setActiveTab('dashboard');
-              setSelectedMemberId(null);
-              setViewingMemberDetail(false);
-            }}
+            onClick={() => handleTabChange('dashboard')}
             className={`w-full text-left px-4 py-2 rounded mb-2 ${
               activeTab === 'dashboard' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
             }`}
@@ -131,11 +155,7 @@ export const MainLayout = () => {
             Dashboard
           </button>
           <button
-            onClick={() => {
-              setActiveTab('members');
-              setSelectedMemberId(null);
-              setViewingMemberDetail(false);
-            }}
+            onClick={() => handleTabChange('members')}
             className={`w-full text-left px-4 py-2 rounded mb-2 ${
               activeTab === 'members' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
             }`}
@@ -143,11 +163,7 @@ export const MainLayout = () => {
             Membros
           </button>
           <button
-            onClick={() => {
-              setActiveTab('payments');
-              setSelectedMemberId(null);
-              setViewingMemberDetail(false);
-            }}
+            onClick={() => handleTabChange('payments')}
             className={`w-full text-left px-4 py-2 rounded mb-2 ${
               activeTab === 'payments' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
             }`}
@@ -155,11 +171,7 @@ export const MainLayout = () => {
             Pagamentos
           </button>
           <button
-            onClick={() => {
-              setActiveTab('reports');
-              setViewingMemberDetail(false);
-              setSelectedMemberId(null);
-            }}
+            onClick={() => handleTabChange('reports')}
             className={`w-full text-left px-4 py-2 rounded mb-2 ${
               activeTab === 'reports' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
             }`}
@@ -167,11 +179,7 @@ export const MainLayout = () => {
             Relatórios
           </button>
           <button
-            onClick={() => {
-              setActiveTab('help');
-              setViewingMemberDetail(false);
-              setSelectedMemberId(null);
-            }}
+            onClick={() => handleTabChange('help')}
             className={`w-full text-left px-4 py-2 rounded mb-2 ${
               activeTab === 'help' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
             }`}
@@ -179,11 +187,7 @@ export const MainLayout = () => {
             Ajuda
           </button>
           <button
-            onClick={() => {
-              setActiveTab('settings');
-              setSelectedMemberId(null);
-              setViewingMemberDetail(false);
-            }}
+            onClick={() => handleTabChange('settings')}
             className={`w-full text-left px-4 py-2 rounded ${
               activeTab === 'settings' ? 'bg-dark-accent text-white' : 'text-dark-text-primary hover:bg-dark-bg'
             }`}
@@ -206,9 +210,13 @@ export const MainLayout = () => {
         </div>
 
         <div className="flex-1 overflow-auto">
-          {activeTab === 'dashboard' && (
-            <DashboardScreen />
-          )}
+          {(initialLoading || tabLoading) ? (
+            <LoadingContent />
+          ) : (
+            <>
+              {activeTab === 'dashboard' && (
+                <DashboardScreen />
+              )}
 
         {activeTab === 'members' && !viewingMemberDetail && (
           <div className="p-8">
@@ -610,12 +618,14 @@ export const MainLayout = () => {
           </div>
         )}
 
-        {activeTab === 'reports' && <ReportsScreen />}
+              {activeTab === 'reports' && <ReportsScreen />}
 
-        {activeTab === 'help' && <HelpScreen />}
+              {activeTab === 'help' && <HelpScreen />}
 
-          {activeTab === 'settings' && (
-            <SettingsScreen />
+              {activeTab === 'settings' && (
+                <SettingsScreen />
+              )}
+            </>
           )}
         </div>
       </div>

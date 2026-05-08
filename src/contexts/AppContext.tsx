@@ -36,7 +36,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [members, setMembers] = useState<Member[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [settings, setSettings] = useState<AppSettings>({ minimumFee: '15.00' });
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentModalPrefill, setPaymentModalPrefill] = useState<PaymentPrefill>();
   const [showReAuthModal, setShowReAuthModal] = useState(false);
@@ -46,15 +46,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const loadInitialData = async () => {
       if (!password) {
-        setInitialLoading(false);
         return;
       }
 
       setInitialLoading(true);
       try {
-        await Promise.all([
-          refreshMembers(),
-          refreshSettings()
+        // Load data and ensure loading screen shows for at least 200ms
+        const [_] = await Promise.all([
+          Promise.all([
+            refreshMembers(),
+            refreshPayments(),
+            refreshSettings()
+          ]),
+          new Promise(resolve => setTimeout(resolve, 200))
         ]);
       } catch (err) {
         console.error('Error loading initial data:', err);
