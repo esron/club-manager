@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Member, Payment, AppSettings, MemberDebtInfo, PaymentPrefill } from '../types';
 import { useAuth } from './AuthContext';
@@ -7,6 +7,7 @@ interface AppContextType {
   members: Member[];
   payments: Payment[];
   settings: AppSettings;
+  initialLoading: boolean;
   paymentModalOpen: boolean;
   paymentModalPrefill?: PaymentPrefill;
   showReAuthModal: boolean;
@@ -35,10 +36,35 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [members, setMembers] = useState<Member[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [settings, setSettings] = useState<AppSettings>({ minimumFee: '15.00' });
+  const [initialLoading, setInitialLoading] = useState(true);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentModalPrefill, setPaymentModalPrefill] = useState<PaymentPrefill>();
   const [showReAuthModal, setShowReAuthModal] = useState(false);
   const [reAuthCallback, setReAuthCallback] = useState<((password: string) => void) | null>(null);
+
+  // Load initial data when password becomes available
+  useEffect(() => {
+    const loadInitialData = async () => {
+      if (!password) {
+        setInitialLoading(false);
+        return;
+      }
+
+      setInitialLoading(true);
+      try {
+        await Promise.all([
+          refreshMembers(),
+          refreshSettings()
+        ]);
+      } catch (err) {
+        console.error('Error loading initial data:', err);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, [password]);
 
   const refreshMembers = async () => {
     if (!password) return;
@@ -142,6 +168,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       members,
       payments,
       settings,
+      initialLoading,
       paymentModalOpen,
       paymentModalPrefill,
       showReAuthModal,

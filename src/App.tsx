@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { AppProvider } from './contexts/AppContext';
+import { AppProvider, useApp } from './contexts/AppContext';
 import { CreatePasswordScreen } from './components/CreatePasswordScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { MainLayout } from './components/MainLayout';
@@ -12,6 +12,7 @@ import './App.css';
 
 function AppContent() {
   const { isAuthenticated, databaseMissing, checkFirstLaunch } = useAuth();
+  const { initialLoading } = useApp();
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
   const [showMigration, setShowMigration] = useState(false);
 
@@ -52,6 +53,20 @@ function AppContent() {
   if (!isAuthenticated) {
     return <LoginScreen />;
   }
+
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen bg-dark-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-dark-accent"></div>
+          </div>
+          <p className="text-dark-text-primary">Carregando dados...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <MainLayout />
