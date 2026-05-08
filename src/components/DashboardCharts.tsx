@@ -88,7 +88,7 @@ export const DashboardCharts = () => {
                 borderRadius: '0.5rem',
                 color: '#F3F4F6',
               }}
-              formatter={(value: number) => [formatCurrency(value), 'Total']}
+              formatter={(value) => [formatCurrency(Number(value)), 'Total']}
             />
             <Bar dataKey="total_payments" fill="#10B981" radius={[4, 4, 0, 0]} />
           </BarChart>
@@ -120,7 +120,7 @@ export const DashboardCharts = () => {
                 borderRadius: '0.5rem',
                 color: '#F3F4F6',
               }}
-              formatter={(value: number) => [formatCurrency(value), 'Dívida Total']}
+              formatter={(value) => [formatCurrency(Number(value)), 'Dívida Total']}
             />
             <Line
               type="monotone"

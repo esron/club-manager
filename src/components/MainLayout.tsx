@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { formatCurrency, formatDate } from '../types';
 import { DateInput } from './DateInput';
@@ -11,7 +11,7 @@ import { ReAuthModal } from './ReAuthModal';
 import { HelpScreen } from './HelpScreen';
 
 export const MainLayout = () => {
-  const { members, payments, initialLoading, refreshMembers, refreshPayments, refreshSettings, addMember, updateMemberActive, updateMemberName, deletePayment, paymentModalOpen, paymentModalPrefill, openPaymentModal, closePaymentModal } = useApp();
+  const { members, payments, initialLoading, refreshMembers, refreshPayments, addMember, updateMemberActive, updateMemberName, deletePayment, paymentModalOpen, paymentModalPrefill, openPaymentModal, closePaymentModal } = useApp();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'payments' | 'reports' | 'help' | 'settings'>('dashboard');
   const [tabLoading, setTabLoading] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);

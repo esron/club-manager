@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { FEATURES } from './config';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { AppProvider, useApp } from './contexts/AppContext';
+import { AppProvider } from './contexts/AppContext';
 import { CreatePasswordScreen } from './components/CreatePasswordScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { MainLayout } from './components/MainLayout';
@@ -13,7 +13,6 @@ import './App.css';
 
 function AppContent() {
   const { isAuthenticated, databaseMissing, checkFirstLaunch } = useAuth();
-  const { initialLoading } = useApp();
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
   const [showMigration, setShowMigration] = useState(false);
 
