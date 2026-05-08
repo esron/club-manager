@@ -28,7 +28,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
+    "targets": ["nsis", "msi", "appimage", "deb"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -41,6 +41,14 @@
     "category": "Finance",
     "shortDescription": "Gestor de mensalidades do clube",
     "longDescription": "Aplicativo desktop para gestão de mensalidades de clubes com criptografia de dados.",
+    "linux": {
+      "deb": {
+        "depends": []
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    },
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
