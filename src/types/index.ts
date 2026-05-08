@@ -69,3 +69,14 @@ export const MONTH_ABBREV_PT = [
   'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
   'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
 ];
+
+export interface MonthData {
+  month_key: string;
+  month_display: string;
+  total_payments: number;
+  total_debt: number;
+}
+
+export interface ChartData {
+  months: MonthData[];
+}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { formatCurrency } from '../types';
 import type { MemberDebtInfo } from '../types';
+import { DashboardCharts } from './DashboardCharts';
 
 export const DashboardScreen = () => {
   const { members, getAllDebts } = useApp();
@@ -69,6 +70,11 @@ export const DashboardScreen = () => {
             {activeMembers}
           </p>
         </div>
+      </div>
+
+      {/* Dashboard Charts */}
+      <div className="mt-6">
+        <DashboardCharts />
       </div>
     </div>
   );
