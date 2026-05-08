@@ -1,15 +1,49 @@
-# Gestor do Clube (Club Manager)
+# Gestor do Clube
 
-Desktop application for club membership management built with Tauri 2.x, React 18, TypeScript, and Tailwind CSS.
+Aplicativo desktop para gestão de mensalidades de clubes com criptografia de dados.
 
-## Prerequisites
+## 📥 Download
 
-Before running the application, you need to install:
+**Versão Atual: 1.0.0**
 
-1. **Rust** - Visit https://www.rust-lang.org/learn/get-started#installing-rust
-2. **Linux System Dependencies** (webkit2gtk & rsvg2) - Visit https://tauri.app/guides/prerequisites/#linux
+### Windows
+- [Gestor do Clube 1.0.0 Setup.exe](releases/download/v1.0.0/Gestor-do-Clube_1.0.0_x64-setup.exe) (Instalador)
+- Requisitos: Windows 10 ou superior (64-bit)
 
-## Phase 4 Features (Current)
+### Linux
+- [Gestor do Clube 1.0.0 AppImage](releases/download/v1.0.0/gestor-do-clube_1.0.0_amd64.AppImage) (Portável)
+- [Gestor do Clube 1.0.0 DEB](releases/download/v1.0.0/gestor-do-clube_1.0.0_amd64.deb) (Debian/Ubuntu)
+- Requisitos: Ubuntu 20.04+, Fedora 35+, ou equivalente
+
+## 🚀 Instalação Rápida
+
+### Windows
+1. Baixe o instalador `.exe`
+2. Execute e siga as instruções
+3. Abra pelo Menu Iniciar
+
+### Linux (AppImage)
+```bash
+chmod +x gestor-do-clube_1.0.0_amd64.AppImage
+./gestor-do-clube_1.0.0_amd64.AppImage
+```
+
+### Linux (DEB)
+```bash
+sudo dpkg -i gestor-do-clube_1.0.0_amd64.deb
+```
+
+📖 **Veja o [Guia de Instalação Completo](docs/INSTALLATION.md)**
+
+## 📚 Documentação
+
+- **[Manual do Usuário (PT-BR)](docs/MANUAL_PT.md)** - Guia completo de uso
+- **[Guia de Instalação](docs/INSTALLATION.md)** - Instruções detalhadas
+- **[Histórico de Versões](CHANGELOG.md)** - Mudanças e melhorias
+
+## ✨ Características
+
+### Phase 4 Features (Current)
 
 **Password Management**
 - Change password without losing database access
@@ -72,18 +106,49 @@ Before running the application, you need to install:
 - **Forms**: react-hook-form
 - **Dates**: date-fns
 
-## Development
+## 🔨 Build do Código Fonte
+
+### Pré-requisitos
+
+- Node.js 18+
+- Rust 1.75+
+- npm ou yarn
+
+### Desenvolvimento
 
 ```bash
-# Install dependencies
+# Clone o repositório
+git clone https://github.com/essilva/club-manager.git
+cd club-manager
+
+# Instale dependências
 npm install
 
-# Run in development mode (requires Rust and system dependencies)
+# Execute em modo desenvolvimento
 npm run tauri dev
-
-# Build frontend only (useful for testing without Rust)
-npm run build
 ```
+
+### Build de Produção
+
+**Linux:**
+```bash
+./scripts/build-linux.sh
+```
+
+**Windows:**
+```bash
+./scripts/build-windows.sh
+```
+
+Binários estarão em `src-tauri/target/release/bundle/`
+
+### Gerar Ícones
+
+```bash
+./scripts/generate-icons.sh
+```
+
+Requer ImageMagick instalado.
 
 ## Recommended IDE Setup
 
