@@ -9,45 +9,60 @@ Before running the application, you need to install:
 1. **Rust** - Visit https://www.rust-lang.org/learn/get-started#installing-rust
 2. **Linux System Dependencies** (webkit2gtk & rsvg2) - Visit https://tauri.app/guides/prerequisites/#linux
 
-## Phase 3 Features
+## Phase 4 Features (Current)
 
-**Reports & Export**
+**Password Management**
+- Change password without losing database access
+- Master key encryption for fast password changes
+- Seamless migration from Phase 3 to Phase 4
+
+**Member Search**
+- Real-time search on Members tab
+- Case-insensitive partial name matching
+- Filters both active and inactive members
+- Result count display
+
+**Dashboard Visualizations**
+- 6-month payment trends (bar chart)
+- 6-month debt evolution (line chart)
+- Interactive tooltips with formatted currency
+- Responsive charts using Recharts library
+
+**Help & Documentation**
+- In-app help screen
+- Quick start guide for common tasks
+- Security information and warnings
+- Version information display
+
+## Previous Features
+
+**Reports & Export (Phase 3)**
 - Dedicated Reports screen with export functionality
 - Debt Status report (current member debt summary)
 - Payment History report (matrix-style payment grid)
 - CSV and XLSX export formats
-- Anonymization support (Membro #1, #2, etc.)
-- Re-authentication before export for security
-- Preview functionality before exporting
-- Date range selection for payment history
-- Optional inactive member inclusion for debt status
+- Anonymization support
+- Summary totals with XLSX formulas
 
-**Dashboard**
-- Overview of total outstanding debt across all members
-- Display of active member count
-- Quick access to member detail views
-
-**Settings**
-- Configurable minimum membership fee
-- Persisted settings stored in local database
-
-**Member Management**
-- Member detail view with full payment history
-- Debt calculation showing unpaid months with amounts
-- List of months with outstanding payments
-- Quick link to pay specific unpaid months
+**Dashboard & Member Management (Phase 2)**
+- Overview of total outstanding debt
+- Active member count
+- Member detail view with payment history
+- Debt calculation and visualization
 
 **Payment System**
-- Global payment modal accessible from toolbar
-- Auto-fill payment form when selecting from unpaid months
-- Payment date, amount, and period tracking
-- Portuguese-language payment descriptions
+- Global payment modal
+- Auto-fill from unpaid months
+- Payment tracking by month and year
 
-**User Interface**
-- Complete Portuguese interface
-- Dark theme throughout application
-- Responsive table layouts with pagination
-- Intuitive navigation between sections
+**Core Features (Phase 1)**
+- Encrypted SQLCipher database
+- Password-protected access
+- Member CRUD operations
+- Payment recording
+- Portuguese interface
+- Dark theme UI
+- Configurable minimum membership fee
 
 ## Tech Stack
 
