@@ -4,11 +4,12 @@ use crate::models::member::get_all_members;
 use crate::models::payment::get_payments;
 use crate::models::settings::get_setting;
 use crate::security::config::load_config;
-use crate::security::password::derive_encryption_key;
+use crate::security::password::{derive_encryption_key, decrypt_master_key};
 use crate::db::connection::open_encrypted_db;
 use std::path::PathBuf;
 use chrono::{Utc, NaiveDate, Datelike};
 use serde::{Serialize, Deserialize};
+use zeroize::Zeroizing;
 
 #[derive(Serialize, Deserialize)]
 pub struct UnpaidMonth {
@@ -180,12 +181,21 @@ fn get_authenticated_connection(password: &str) -> Result<rusqlite::Connection, 
     let config = load_config(&config_path)
         .map_err(|e| format!("Failed to load config: {}", e))?;
 
-    let key_bytes = derive_encryption_key(password, &config.salt)
-        .map_err(|e| format!("Failed to derive key: {}", e))?;
-    let key_hex = hex::encode(&key_bytes);
+    // Get the correct encryption key (master key if migrated, password-derived if not)
+    let key_hex = if let Some(encrypted_master_key) = &config.master_key_encrypted {
+        // Post-migration: decrypt master key
+        let master_key = decrypt_master_key(encrypted_master_key, password, &config.salt)
+            .map_err(|e| format!("Failed to decrypt master key: {}", e))?;
+        Zeroizing::new(hex::encode(&*master_key))
+    } else {
+        // Pre-migration: derive key from password
+        let key_bytes = derive_encryption_key(password, &config.salt)
+            .map_err(|e| format!("Failed to derive key: {}", e))?;
+        Zeroizing::new(hex::encode(&*key_bytes))
+    };
 
     let db_path = get_db_path();
-    open_encrypted_db(&db_path, &key_hex)
+    open_encrypted_db(&db_path, &*key_hex)
         .map_err(|e| format!("Failed to open database: {}", e))
 }
 
